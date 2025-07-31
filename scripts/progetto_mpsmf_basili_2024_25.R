@@ -1,11 +1,16 @@
-################################################### Libraries ###################################################
+################################################### Libraries ####################################################################################
 if (!require("ggcorrplot")) {
   install.packages("ggcorrplot")
   library(ggcorrplot)
 }
-#############################################################################################################################
 
-################################################### Environmental Setting ###################################################
+if (!require("tidyverse")) {
+  install.packages("tidyverse")
+  library(tidyverse)
+}
+##################################################################################################################################################
+
+################################################### Environmental Setting ########################################################################
 # Removing all items in Global Environment
 rm(list=ls())
 
@@ -21,12 +26,44 @@ setwd(WD)
 
 # Clearing the console.
 cat("\014")
-#############################################################################################################################
+##################################################################################################################################################
 
-################################################### Calcolo dei Rendimenti Logaritmici Giornalieri (Percentuali) ############
 # Percorso della cartella dati
 data_folder <- "../data"
 
+################################################### Conversione dei Tassi Risk-Free (da Base Annua a Base Giornaliera) ###########################
+# Lista dei file CSV
+files <- c("daily-treasury-rates_2023.csv",
+           "daily-treasury-rates_2024.csv",
+           "daily-treasury-rates_2025.csv")
+
+# Carica e unisci tutti i file
+treasury_data <- files %>%
+  map_df(~ read_csv(file.path(data_folder, .x), show_col_types = FALSE))
+
+# Conversione del formato data (MM/DD/YYYY → YYYY-MM-DD)
+treasury_data <- treasury_data %>%
+  mutate(Date = mdy(Date))
+
+# Filtra per date tra 2023-07-31 e 2025-07-29 (inclusi)
+treasury_filtered <- treasury_data %>%
+  filter(Date >= as.Date("2023-07-31") & Date <= as.Date("2025-07-29"))
+
+# Estrai solo la colonna 3 Mo e calcola tasso giornaliero
+risk_free_df <- treasury_filtered %>%
+  select(Date, `3 Mo`) %>%
+  rename(Rf_Annual = `3 Mo`) %>%
+  mutate(Rf_Daily = 100 * (log(1 + Rf_Annual / 100) / 251)) %>%  # log-return giornaliero in % 
+  arrange(Date)
+
+# Visualizza i primi valori
+print(head(risk_free_df, 10))
+
+# Salva il file finale (opzionale)
+write_csv(risk_free_df, file.path(data_folder, "risk_free_3mo_daily.csv"))
+##################################################################################################################################################
+
+################################################### Calcolo dei Rendimenti Logaritmici Giornalieri (Percentuali) per i Titoli ####################
 # Elenco dei ticker
 tickers <- c('SPY', 'AAPL', 'UNH', 'JPM', 'AMZN', 'XOM', 'IEF')
 
@@ -66,9 +103,9 @@ glimpse(merged_data)
 
 # Salva il dataset completo
 write_csv(merged_data, file.path(data_folder, "merged_data_with_log_returns.csv"))
-#############################################################################################################################
+##################################################################################################################################################
 
-################################################### Costruzione della Matrice di Varianza-Covarianza Empirica ############
+################################################### Costruzione della Matrice di Varianza-Covarianza Empirica ####################################
 # Estrai solo le colonne dei rendimenti logaritmici
 log_return_cols <- merged_data %>%
   select(ends_with("_LogReturn"))
@@ -87,7 +124,9 @@ print(round(sigma_matrix, 4))
 ggcorrplot(sigma_matrix, lab = TRUE, lab_size = 3, type = "lower",
            title = "Matrice di Covarianza dei Rendimenti Logaritmici",
            colors = c("blue", "white", "red"))
+##################################################################################################################################################
 
+################################################### Costruzione della Matrice di correlazione ####################################################
 # Calcola la matrice di correlazione
 corr_matrix <- cor(log_return_clean)
 
@@ -95,4 +134,4 @@ corr_matrix <- cor(log_return_clean)
 ggcorrplot(corr_matrix, lab = TRUE, lab_size = 3, type = "lower",
            title = "Matrice di Correlazione dei Rendimenti Logaritmici",
            colors = c("blue", "white", "red"))
-#############################################################################################################################
+##################################################################################################################################################
