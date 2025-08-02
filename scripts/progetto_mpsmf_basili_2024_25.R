@@ -63,6 +63,19 @@ risk_free_df <- treasury_filtered %>%
 
 # Visualizza i primi valori
 print(head(risk_free_df, 10))
+# # A tibble: 10 × 3
+#    Date       Rf_Annual_LogReturn Rf_Daily_LogReturn
+#    <date>                   <dbl>              <dbl>
+#  1 2023-07-31                5.55             0.0215
+#  2 2023-08-01                5.54             0.0215
+#  3 2023-08-02                5.53             0.0214
+#  4 2023-08-03                5.54             0.0215
+#  5 2023-08-04                5.54             0.0215
+#  6 2023-08-07                5.56             0.0216
+#  7 2023-08-08                5.57             0.0216
+#  8 2023-08-09                5.55             0.0215
+#  9 2023-08-10                5.54             0.0215
+# 10 2023-08-11                5.54             0.0215
 
 # Salva il file finale (opzionale)
 write_csv(risk_free_df, file.path(data_folder, "risk_free_3mo_daily.csv"))
@@ -106,6 +119,23 @@ merged_data <- merged_data %>%
 
 # Controlla la struttura finale
 glimpse(merged_data)
+# Rows: 501
+# Columns: 15
+# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, …
+# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 4…
+# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.…
+# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 1…
+# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, …
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 4…
+# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573…
+# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 1…
+# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 1…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54…
+# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101…
+# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.54091033…
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0…
 
 # Salva il dataset completo
 write_csv(merged_data, file.path(data_folder, "merged_data_with_log_returns_and_rf.csv"))
@@ -232,7 +262,7 @@ plot_adjclose_with_regression_loess <- function(merged_df, ticker, start_date = 
   linee <- c("AdjClose" = "solid", "Regression" = "dashed", "LOESS" = "dashed")
   
   ggplot(plot_df, aes(x = Index, y = Valore, color = Tipo, linetype = Tipo)) +
-    geom_line(size = 1) +
+    geom_line(linewidth = 1) +
     scale_color_manual(values = colori,
                        labels = c("Prezzo di Chiusura Aggiustato", "Regressione Lineare", "LOESS")) +
     scale_linetype_manual(values = linee,
@@ -324,10 +354,10 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
   
   # Plot con asse x = Index (tempo come variabile numerica)
   ggplot(plot_df, aes(x = Index, y = Valore)) +
-    geom_line(data = filter(plot_df, Tipo == "AdjClose"),
-              aes(color = LegendaTipo, linetype = LegendaTipo), size = 1) +
-    geom_line(data = filter(plot_df, Tipo %in% c("Regression", "LOESS")),
-              aes(color = LegendaTipo, linetype = LegendaTipo), size = 1) +
+    geom_line(data = filter(plot_df, Tipo == "AdjClose", !is.na(Valore)),
+              aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
+    geom_line(data = filter(plot_df, Tipo %in% c("Regression", "LOESS"), !is.na(Valore)),
+              aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
     geom_vline(xintercept = split_index, linetype = "solid", color = "darkgrey", size = 1) +
     scale_color_manual(name = NULL,
                        values = c(
@@ -547,6 +577,83 @@ ljungbox_test <- function(series, col_name = NULL) {
 for (col in risky_logreturn_cols) {
   ljungbox_test(merged_data[[col]], col_name = col)
 }
+# Ljung-Box test per SPY_LogReturn (max_lag = 10):
+#            lag   lb_stat   lb_pvalue
+# X-squared    1  2.151626 0.142418961
+# X-squared1   2  5.436812 0.065979849
+# X-squared2   3 11.668729 0.008608552
+# X-squared3   4 13.494766 0.009095025
+# X-squared4   5 13.494803 0.019157864
+# X-squared5   6 14.136206 0.028151125
+# X-squared6   7 14.294220 0.046189081
+# X-squared7   8 14.502604 0.069569836
+# X-squared8   9 14.574400 0.103309632
+# X-squared9  10 14.775374 0.140468457
+# 
+# Ljung-Box test per AAPL_LogReturn (max_lag = 10):
+#            lag    lb_stat  lb_pvalue
+# X-squared    1  0.8107328 0.36790368
+# X-squared1   2  5.1030605 0.07796227
+# X-squared2   3  7.9138552 0.04782602
+# X-squared3   4  9.8854829 0.04240153
+# X-squared4   5 13.3245762 0.02051976
+# X-squared5   6 13.3245978 0.03816132
+# X-squared6   7 14.3646265 0.04506339
+# X-squared7   8 14.3735117 0.07253460
+# X-squared8   9 14.7355257 0.09846154
+# X-squared9  10 15.9176791 0.10201330
+# 
+# Ljung-Box test per UNH_LogReturn (max_lag = 10):
+#            lag  lb_stat  lb_pvalue
+# X-squared    1 2.940947 0.08636007
+# X-squared1   2 3.298267 0.19221636
+# X-squared2   3 3.339238 0.34221873
+# X-squared3   4 3.988325 0.40758818
+# X-squared4   5 4.088408 0.53675893
+# X-squared5   6 4.203304 0.64918531
+# X-squared6   7 4.825012 0.68130796
+# X-squared7   8 4.968564 0.76093074
+# X-squared8   9 5.333322 0.80433781
+# X-squared9  10 5.336205 0.86761801
+# 
+# Ljung-Box test per JPM_LogReturn (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.001371536 0.9704577
+# X-squared1   2 1.355756630 0.5076930
+# X-squared2   3 1.793473236 0.6163563
+# X-squared3   4 3.485675208 0.4800598
+# X-squared4   5 4.276157826 0.5103789
+# X-squared5   6 5.491555824 0.4824779
+# X-squared6   7 5.985976342 0.5413878
+# X-squared7   8 8.499269274 0.3862782
+# X-squared8   9 8.510487630 0.4836287
+# X-squared9  10 8.720641589 0.5588051
+# 
+# Ljung-Box test per AMZN_LogReturn (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.4867213 0.4853935
+# X-squared1   2 2.1606233 0.3394897
+# X-squared2   3 2.2306694 0.5259328
+# X-squared3   4 2.2936766 0.6819206
+# X-squared4   5 2.5839026 0.7638095
+# X-squared5   6 2.5845335 0.8588897
+# X-squared6   7 3.4591562 0.8395325
+# X-squared7   8 4.0805986 0.8497793
+# X-squared8   9 4.8519644 0.8470172
+# X-squared9  10 4.8660782 0.8999426
+# 
+# Ljung-Box test per XOM_LogReturn (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1  0.06534642 0.7982370
+# X-squared1   2  0.60308064 0.7396780
+# X-squared2   3  0.98284967 0.8054017
+# X-squared3   4  1.21406500 0.8757775
+# X-squared4   5  2.25732414 0.8125140
+# X-squared5   6  2.41337197 0.8780340
+# X-squared6   7  9.13177403 0.2433332
+# X-squared7   8  9.66440497 0.2893746
+# X-squared8   9 13.54618546 0.1394087
+# X-squared9  10 13.66088282 0.1890292
 
 # Poiché tutti i p-value per le variabili del test di Ljung-Box sono maggiori di α = 0.01 (in realtà anche di α = 0.05 e α = 0.10),
 # non abbiamo evidenza statistica sufficiente per rifiutare l'ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
@@ -574,8 +681,14 @@ calculate_cov_matrix <- function(df, columns) {
 cov_matrix <- calculate_cov_matrix(merged_data, risky_logreturn_cols)
 
 # Mostra la matrice
-print("Matrice di varianza-covarianza dei rendimenti logaritmici (%):")
 print(round(cov_matrix, 4))
+#                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
+# SPY_LogReturn         1.0669         1.2488        0.1862        0.9508         1.4718        0.4726
+# AAPL_LogReturn        1.2488         2.9768       -0.0220        0.8446         1.6145        0.5394
+# UNH_LogReturn         0.1862        -0.0220        5.4824        0.2086         0.0014        0.0053
+# JPM_LogReturn         0.9508         0.8446        0.2086        2.1589         1.1316        0.7445
+# AMZN_LogReturn        1.4718         1.6145        0.0014        1.1316         3.8201        0.2746
+# XOM_LogReturn         0.4726         0.5394        0.0053        0.7445         0.2746        1.9861
 
 # Visualizza la matrice di varianza-covarianza con una heatmap
 ggcorrplot(cov_matrix, lab = TRUE, lab_size = 3, type = "lower",
@@ -663,6 +776,13 @@ lr_test <- function(df, alpha = 0.10) {
 
 # Esegue il test
 lr_test(log_return_clean, alpha = 0.01)
+# Likelihood Ratio Test
+# Test statistic: 1104.484370
+# P-value: 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Rifiutiamo l'ipotesi nulla al livello di significatività del 1%
+# → Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali.
 
 # Alla luce dei risultati, il test LR rileva differenze significative tra le matrici di covarianza dei modelli considerati.
 # Pertanto, non assumiamo l’indipendenza tra le serie.
