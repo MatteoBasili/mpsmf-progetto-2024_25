@@ -13,6 +13,11 @@ if (!require("patchwork")) {
   install.packages("patchwork")
   library(patchwork)
 }
+
+if (!require("CADFtest")) {
+  install.packages("CADFtest")
+  library(CADFtest)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -157,7 +162,7 @@ plot_adj_close <- function(df, ticker) {
   adj_col <- paste0(ticker, "_AdjClose")
   
   ggplot(df, aes(x = Date, y = .data[[adj_col]])) +
-    geom_line(color = "steelblue") +
+    geom_line(color = "steelblue", size = 1.1) +
     labs(title = paste(ticker, " - Prezzo di Chiusura Giornaliero Aggiustato: Andamento Completo dal 2023-07-31 al 2025-07-29"),
          x = "Date",
          y = "Adjusted Close Price (USD)") +
@@ -358,7 +363,7 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
               aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
     geom_line(data = filter(plot_df, Tipo %in% c("Regression", "LOESS"), !is.na(Valore)),
               aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
-    geom_vline(xintercept = split_index, linetype = "solid", color = "darkgrey", size = 1) +
+    geom_vline(xintercept = split_index, linetype = "solid", color = "darkgrey", linewidth = 1) +
     scale_color_manual(name = NULL,
                        values = c(
                          "Training Set" = "black",
@@ -736,9 +741,8 @@ plot_corr_heatmap(abs(risky_returns_df), "Matrice di Correlazione dei Valori Ass
 # Il test LR confronta un modello completo (che include tutte le variabili di interesse)
 # e un modello ridotto (che include solo una parte di esse). In particolare, confronta la log-verosimiglianza dei due modelli. Ha come:
 #  
-# H_0: Le matrici di covarianza del modello completo e del modello ridotto SONO uguali;
-# H_1: Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali;
-
+# - H_0: Le matrici di covarianza del modello completo e del modello ridotto SONO uguali;
+# - H_1: Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali.
 lr_test <- function(df, alpha = 0.10) {
   n <- nrow(df)
   p <- ncol(df)
@@ -762,14 +766,14 @@ lr_test <- function(df, alpha = 0.10) {
   
   # Header
   cat("Likelihood Ratio Test\n")
-  cat(sprintf("Test statistic: %f\nP-value: %g\n", lr_stat, p_value))
+  cat(sprintf("Statistic: %f\np-value: %g\n", lr_stat, p_value))
   
   # Conclusione
   if (p_value > alpha) {
-    cat(sprintf("\n** CONCLUSIONE: p-value > %.2f **\nNon rifiutiamo l'ipotesi nulla con un livello di significatività del %d%%\n→ Le matrici di covarianza del modello completo e del modello ridotto SONO uguali.\n\n",
+    cat(sprintf("\n** CONCLUSIONE: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ Le matrici di covarianza del modello completo e del modello ridotto SONO uguali.\n\n",
                 alpha, alpha * 100))
   } else {
-    cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nRifiutiamo l'ipotesi nulla al livello di significatività del %d%%\n→ Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali.\n\n",
+    cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla al livello di significatività del %d%%\n→ Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali.\n\n",
                 alpha, alpha * 100))
   }
 }
@@ -777,13 +781,323 @@ lr_test <- function(df, alpha = 0.10) {
 # Esegue il test
 lr_test(log_return_clean, alpha = 0.01)
 # Likelihood Ratio Test
-# Test statistic: 1104.484370
-# P-value: 0
+# Statistic: 1104.484370
+# p-value: 0
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
-# Rifiutiamo l'ipotesi nulla al livello di significatività del 1%
+# Possiamo rigettare l'ipotesi nulla al livello di significatività del 1%
 # → Le matrici di covarianza del modello completo e del modello ridotto NON sono uguali.
 
 # Alla luce dei risultati, il test LR rileva differenze significative tra le matrici di covarianza dei modelli considerati.
 # Pertanto, non assumiamo l’indipendenza tra le serie.
+##################################################################################################################################################
+
+################################################### Analisi della Volatilità dell’S&P 500 tramite Modello GARCH ##################################
+# Quello che vogliamo fare adesso è applicare un modello GARCH(1,1) alla serie storica dell’S&P 500 al fine di stimare la volatilità condizionata.
+#
+# Prima di applicare un modello GARCH, occorre verificare la presenza di una unit root, che indicherebbe un comportamento simile a un
+# random walk, in cui la conoscenza del passato oltre lo stato presente non migliora la previsione.
+#
+# Poiché i modelli GARCH descrivono l'evoluzione della varianza condizionata nel tempo, è necessario che la serie sia stazionaria:
+# solo in questo caso la dinamica della varianza è ben definita e convergente, e il processo GARCH ammette una soluzione con varianza finita.
+# In caso contrario, il modello non è affidabile dal punto di visto statistico, né utile in pratica.
+
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test.
+# L’ADF (Augmented Dickey-Fuller) testa la presenza di una radice unitaria nella serie temporale, cioè verifica se la serie è stazionaria o meno.
+# Il test ha come:
+#
+# - H_0: La serie ha una radice unitaria → NON stazionaria;
+# - H_1 (a seconda del modello):
+#   - none: serie STAZIONARIA con media zero (nessun intercept);
+#   - drift: serie STAZIONARIA con media costante (intercept);
+#   - trend: serie STAZIONARIA attorno a un trend lineare (intercept + trend).
+adf_test_all <- function(data, col, alpha = 0.01) {
+  x <- na.omit(data[[col]])
+  
+  types <- c("none", "drift", "trend")
+  names <- c("Senza Intercetta", "Con Intercetta (Drift)", "Con Intercetta e Trend")
+  
+  for (i in seq_along(types)) {
+    type <- types[i]
+    label <- names[i]
+    
+    cat(sprintf("\n[%s] ADF Test - %s\n", col, label))
+    
+    result <- CADFtest(x, type = type, criterion = "AIC")
+    
+    cat(sprintf("Statistic: %f\n", result$stat))
+    cat(sprintf("p-value  : %g\n", result$p.value))
+    
+    if (result$p.value <= alpha) {
+      cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO stazionari.\n\n", alpha, alpha * 100))
+    } else {
+      cat(sprintf("\n** CONCLUSIONE: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono stazionari.\n\n", alpha, alpha * 100))
+    }
+  }
+}
+
+# Esegue il test ADF
+adf_test_all(merged_data, "SPY_AdjClose")
+# [SPY_AdjClose] ADF Test - Senza Intercetta
+# Statistic: 1.588481
+# p-value  : 0.97284
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [SPY_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -0.572014
+# p-value  : 0.873703
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [SPY_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -2.594388
+# p-value  : 0.283127
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+
+# KPSS Test.
+# Anche il KPSS (Kwiatkowski-Phillips-Schmidt-Shin) test serve a verificare se una serie temporale è stazionaria o meno.
+# A differenza dell'ADF, qui l'ipotesi nulla e alternativa sono invertite.
+# Il test ha come:
+#
+# - H_0: La serie è stazionaria (nessuna radice unitaria);
+# - H_1 (a seconda del modello):
+#   - Level: la serie NON è stazionaria → ha una radice unitaria rispetto al livello (cioè la media varia nel tempo);
+#   - Trend: la serie NON è stazionaria → ha una radice unitaria rispetto al trend (cioè non staziona attorno a un trend deterministico).
+kpss_test_all <- function(data, col, alpha = 0.01) {
+  x <- na.omit(data[[col]])
+  
+  types <- c("Level", "Trend")
+  names <- c("Stazionarietà attorno a una media costante", 
+             "Stazionarietà attorno a un trend deterministico")
+  
+  # Tabelle dei valori critici standard (da KPSS)
+  critical_values <- list(
+    Level = c(`10%` = 0.347, `5%` = 0.463, `2.5%` = 0.574, `1%` = 0.739),
+    Trend = c(`10%` = 0.119, `5%` = 0.146, `2.5%` = 0.176, `1%` = 0.216)
+  )
+  
+  # Funzione per trovare la soglia più vicina
+  get_critical <- function(cv, alpha) {
+    key <- names(cv)[which.min(abs(as.numeric(gsub("%", "", names(cv))) / 100 - alpha))]
+    value <- unname(cv[[key]])
+    return(c(value = as.numeric(value), level = key))
+  }
+  
+  # Funzione per stimare il p-value approssimato
+  estimate_pvalue <- function(stat, cv) {
+    if (stat > cv["1%"]) {
+      return("p-value < 0.01")
+    } else if (stat > cv["2.5%"]) {
+      return("p-value ≈ 0.025")
+    } else if (stat > cv["5%"]) {
+      return("p-value ≈ 0.05")
+    } else if (stat > cv["10%"]) {
+      return("p-value ≈ 0.10")
+    } else {
+      return("p-value > 0.10")
+    }
+  }
+  
+  for (i in seq_along(types)) {
+    type <- types[i]
+    label <- names[i]
+    
+    cat(sprintf("\n[%s] KPSS Test - %s\n", col, label))
+    
+    result <- kpss.test(x, null = type)
+    
+    stat <- result$statistic
+    crit <- get_critical(critical_values[[type]], alpha)
+    all_cv <- critical_values[[type]]
+    
+    pvalue_msg <- estimate_pvalue(stat, all_cv)
+    
+    cat(sprintf("Statistic: %f\n", stat))
+    cat(sprintf("Valore critico (circa %s): %f\n", crit["level"], as.numeric(crit["value"])))
+    cat(sprintf("Interpretazione del p-value: %s\n", pvalue_msg))
+    
+    if (stat > crit["value"]) {
+      cat(sprintf("\n** CONCLUSIONE: Statistic > valore critico (%s) **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono stazionari.\n\n", crit["level"], alpha * 100))
+    } else {
+      cat(sprintf("\n** CONCLUSIONE: Statistic <= valore critico (%s) **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO stazionari.\n\n", crit["level"], alpha * 100))
+    }
+  }
+}
+
+# Esegue il test KPSS
+kpss_test_all(merged_data, "SPY_AdjClose")
+# [SPY_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 7.440873
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [SPY_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.965340
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+
+# Il metodo più semplice per rendere una serie stazionaria consiste nel calcolare la prima differenza della serie.
+# Nel caso di una serie finanziaria, è preferibile applicare la trasformazione logaritmica.
+# - La differenza elimina la componente di random walk.
+# - La trasformazione logaritmica elimina un possibile trend deterministico esponenziale rendendolo lineare.
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+adf_test_all(merged_data, "SPY_LogReturn")
+# [SPY_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -14.977208
+# p-value  : 3.49039e-31
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [SPY_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -15.083055
+# p-value  : 1.28862e-30
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [SPY_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -15.067622
+# p-value  : 7.68936e-34
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+
+# KPSS Test
+kpss_test_all(merged_data, "SPY_LogReturn")
+# [SPY_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.058694
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [SPY_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.063419
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Occorre anche controllare la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica:
+
+# Test di Breusch-Pagan.
+# Il test di Breusch-Pagan verifica la presenza di eteroschedasticità (varianza non costante degli errori) in un modello di regressione.
+# Il test ha come:
+#
+# - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
+# - H_1: i dati NON sono omoschedastici (SONO eteroschedastici).
+breusch_pagan_test <- function(index, group, col, alpha = 0.01) {
+  model <- lm(group ~ index)
+  bp <- lmtest::bptest(model)
+  
+  cat(sprintf("[%s] Breusch-Pagan Test\n", col))
+  
+  cat(sprintf("Statistic: %f\np-value: %g\n",
+              bp$statistic, bp$p.value))
+  
+  if (bp$p.value > alpha) {
+    cat(sprintf("\n** Conclusione: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono eteroschedastici.\n\n",
+                alpha, alpha * 100))
+  } else {
+    cat(sprintf("\n** Conclusione: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO eteroschedastici.\n\n",
+                alpha, alpha * 100))
+  }
+}
+
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(merged_data$SPY_LogReturn)
+index_clean <- merged_data$Index[valid_rows]
+group_clean <- merged_data$SPY_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "SPY_LogReturn")
+# [SPY_LogReturn] Breusch-Pagan Test
+# Statistic: 6.215749
+# p-value: 0.0126619
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+
+# Test di White.
+# Anche il test di White verifica la presenza di eteroschedasticità in un modello di regressione.
+# Il test ha come:
+#
+# - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
+# - H_1: i dati NON sono omoschedastici (SONO eteroschedastici).
+white_test <- function(index, group, col, alpha = 0.01) {
+  model <- lm(group ~ index)
+  
+  wt <- lmtest::bptest(model, ~ fitted.values(model) + I(fitted.values(model)^2))
+  
+  cat(sprintf("[%s] White Test\n", col))
+  
+  cat(sprintf("Statistic: %f\np-value: %g\n",
+              wt$statistic, wt$p.value))
+  
+  if (wt$p.value > alpha) {
+    cat(sprintf("\n** Conclusione: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono eteroschedastici.\n\n",
+                alpha, alpha * 100))
+  } else {
+    cat(sprintf("\n** Conclusione: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO eteroschedastici.\n\n",
+                alpha, alpha * 100))
+  }
+}
+
+# Esegue il test di White
+white_test(index_clean, group_clean, "SPY_LogReturn")
+# [SPY_LogReturn] White Test
+# Statistic: 6.771341
+# p-value: 0.0338549
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# CONCLUSIONI:
 ##################################################################################################################################################
