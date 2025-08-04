@@ -62,25 +62,25 @@ treasury_filtered <- treasury_data %>%
 # Estrai solo la colonna 3 Mo e calcola tasso giornaliero
 risk_free_df <- treasury_filtered %>%
   select(Date, `3 Mo`) %>%
-  rename(Rf_Annual_LogReturn = `3 Mo`) %>%
-  mutate(Rf_Daily_LogReturn = 100 * (log(1 + Rf_Annual_LogReturn / 100) / 251)) %>%  # log-return giornaliero in % 
+  rename(Rf_3Mo_AnnualNominal = `3 Mo`) %>%
+  mutate(Rf_Daily_LogReturn = 100 * (log(1 + Rf_3Mo_AnnualNominal / 100) / 251)) %>%  # log-return giornaliero in % 
   arrange(Date)
 
 # Visualizza i primi valori
 print(head(risk_free_df, 10))
 # # A tibble: 10 × 3
-#    Date       Rf_Annual_LogReturn Rf_Daily_LogReturn
-#    <date>                   <dbl>              <dbl>
-#  1 2023-07-31                5.55             0.0215
-#  2 2023-08-01                5.54             0.0215
-#  3 2023-08-02                5.53             0.0214
-#  4 2023-08-03                5.54             0.0215
-#  5 2023-08-04                5.54             0.0215
-#  6 2023-08-07                5.56             0.0216
-#  7 2023-08-08                5.57             0.0216
-#  8 2023-08-09                5.55             0.0215
-#  9 2023-08-10                5.54             0.0215
-# 10 2023-08-11                5.54             0.0215
+#    Date       Rf_3Mo_AnnualNominal Rf_Daily_LogReturn
+#    <date>                    <dbl>              <dbl>
+#  1 2023-07-31                 5.55             0.0215
+#  2 2023-08-01                 5.54             0.0215
+#  3 2023-08-02                 5.53             0.0214
+#  4 2023-08-03                 5.54             0.0215
+#  5 2023-08-04                 5.54             0.0215
+#  6 2023-08-07                 5.56             0.0216
+#  7 2023-08-08                 5.57             0.0216
+#  8 2023-08-09                 5.55             0.0215
+#  9 2023-08-10                 5.54             0.0215
+# 10 2023-08-11                 5.54             0.0215
 
 # Salva il file finale (opzionale)
 write_csv(risk_free_df, file.path(data_folder, "risk_free_3mo_daily.csv"))
