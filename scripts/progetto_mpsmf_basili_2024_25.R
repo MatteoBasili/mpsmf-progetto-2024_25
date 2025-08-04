@@ -122,7 +122,7 @@ read_and_process <- function(ticker) {
 list_dfs <- lapply(tickers, read_and_process)
 
 # Unisci tutti i dataframe per colonna "Date"
-merged_data <- reduce(list_dfs, full_join, by = "Date")
+merged_data <- purrr::reduce(list_dfs, full_join, by = "Date")
 
 # Unisci con il dataframe dei tassi risk-free
 merged_data <- merged_data %>%
@@ -1344,10 +1344,6 @@ print(head(model_results, 5))
 best_p <- model_results$p[1]
 best_q <- model_results$q[1]
 
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p, best_q))
-#
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
-
 # Stima finale
 best_spec <- ugarchspec(
   variance.model = list(model = "sGARCH", garchOrder = c(best_p, best_q)),
@@ -1356,6 +1352,20 @@ best_spec <- ugarchspec(
 )
 
 best_fit <- ugarchfit(spec = best_spec, data = returns)
+
+# Verifica se la procedura di stima converge
+if (best_fit@fit$convergence == 0) {
+  cat("La stima è convergente.\n")
+} else {
+  cat("La stima NON è convergente.\n")
+  cat("Messaggio fitting:", best_fit@fit$message, "\n")
+}
+# La stima è convergente.
+
+# La procedura di stima converge, quindi selezioniamo questo modello.
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p, best_q))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
 
 # Mostra i risultati finali
 show(best_fit)
@@ -1444,7 +1454,7 @@ show(best_fit)
 # 4    50     74.56     0.010759
 # 
 # 
-# Elapsed time : 0.1311309
+# Elapsed time : 0.05452299
 
 
 # Adesso, dopo aver stimato il modello GARCH migliore, possiamo estrarre facilmente i residui standardizzati, analizzarli e usarli
@@ -1609,10 +1619,6 @@ print(head(model_results_t, 5))
 best_p_t <- model_results_t$p[1]
 best_q_t <- model_results_t$q[1]
 
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_t, best_q_t))
-#
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(3,1)
-
 # Stima finale
 best_spec_t <- ugarchspec(
   variance.model = list(model = "sGARCH", garchOrder = c(best_p_t, best_q_t)),
@@ -1621,6 +1627,20 @@ best_spec_t <- ugarchspec(
 )
 
 best_fit_t <- ugarchfit(spec = best_spec_t, data = returns)
+
+# Verifica se la procedura di stima converge
+if (best_fit_t@fit$convergence == 0) {
+  cat("La stima è convergente.\n")
+} else {
+  cat("La stima NON è convergente.\n")
+  cat("Messaggio fitting:", best_fit_t@fit$message, "\n")
+}
+# La stima è convergente.
+
+# La procedura di stima converge, quindi selezioniamo questo modello.
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_t, best_q_t))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(3,1)
 
 # Mostra i risultati finali
 show(best_fit_t)
@@ -1721,7 +1741,7 @@ show(best_fit_t)
 # 4    50     68.04      0.03717
 # 
 # 
-# Elapsed time : 24.1166
+# Elapsed time : 0.1551561
 
 # Modello con GED
 # Data frame per salvare i risultati con distribuzione GED
@@ -1760,7 +1780,7 @@ for (p in 0:4) {
 }
 
 # Pulisci i risultati rimuovendo eventuali righe con NA o problemi
-model_results_ged <- model_results_ged[complete.cases(model_results_ged), ]
+#model_results_ged <- model_results_ged[complete.cases(model_results_ged), ]
 
 # Ranking e selezione analoga a prima
 model_results_ged$rank_loglik <- rank(-model_results_ged$loglik, ties.method = "min")
@@ -1782,10 +1802,6 @@ print(head(model_results_ged, 5))
 best_p_ged <- model_results_ged$p[1]
 best_q_ged <- model_results_ged$q[1]
 
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_ged, best_q_ged))
-#
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
-
 # Stima finale
 best_spec_ged <- ugarchspec(
   variance.model = list(model = "sGARCH", garchOrder = c(best_p_ged, best_q_ged)),
@@ -1795,6 +1811,22 @@ best_spec_ged <- ugarchspec(
 
 best_fit_ged <- ugarchfit(spec = best_spec_ged, data = returns)
 
+# Verifica se la procedura di stima converge
+if (best_fit_ged@fit$convergence == 0) {
+  cat("La stima è convergente.\n")
+} else {
+  cat("La stima NON è convergente.\n")
+  cat("Messaggio fitting:", best_fit_ged@fit$message, "\n")
+}
+# La stima è convergente.
+
+# La procedura di stima converge, quindi selezioniamo questo modello.
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_ged, best_q_ged))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
+
 # Mostra i risultati finali
 show(best_fit_ged)
+
+# AGGIUSTARE QUEST'ULTIMA PARTE (GARCH con GED)...
 ##################################################################################################################################################
