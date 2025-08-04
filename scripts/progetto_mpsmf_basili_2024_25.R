@@ -660,13 +660,14 @@ for (col in risky_logreturn_cols) {
 # X-squared8   9 13.54618546 0.1394087
 # X-squared9  10 13.66088282 0.1890292
 
-# Poiché tutti i p-value per le variabili del test di Ljung-Box sono maggiori di α = 0.01 (in realtà anche di α = 0.05 e α = 0.10),
-# non abbiamo evidenza statistica sufficiente per rifiutare l'ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
-
-# Ovviamente, sottolineiamo ancora come il test non conferma la scorrelazione, ma piuttosto che non c'è evidenza sufficiente per dimostrare
-# il contrario (come detto più volte a lezione: l'assenza di prove a un processo non implica necessariamente innocenza).
-
-# Dunque, non possiamo rifiutare l'ipotesi nulla: i dati non sono autocorrelati.
+# Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return, osserviamo:
+# - SPY_LogReturn e AAPL_LogReturn mostrano p-value significativamente bassi (inferiori a 0.05) per diversi lag, specialmente tra lag 3 e lag 7.
+#   Ciò indica che possiamo rifiutare l’ipotesi nulla di assenza di autocorrelazione per questi lag. Pertanto, per questi titoli c’è evidenza
+#   statistica di autocorrelazione nelle serie di rendimenti logaritmici.
+# - Per UNH_LogReturn, JPM_LogReturn, AMZN_LogReturn e XOM_LogReturn, i p-value sono generalmente alti (superiori a 0.05) per tutti i lag
+#   considerati. Non abbiamo quindi evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+#   Tuttavia, questo non significa che possiamo affermare con certezza che non esista autocorrelazione, ma semplicemente che il test non ne
+#   rileva in modo significativo.
 ##################################################################################################################################################
 
 ################################################### Analisi di Cross-Correlazione sui Rendimenti Logaritmici #####################################
@@ -1099,5 +1100,25 @@ white_test(index_clean, group_clean, "SPY_LogReturn")
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON sono eteroschedastici.
 
-# CONCLUSIONI:
+# Alla luce dei risultati, non possiamo rifiutare l'ipotesi nulla di omoschedasticità: non c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi allo S&P 500.
+
+# Test di Ljung-Box
+ljungbox_test(merged_data[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
+# Ljung-Box test per SPY_LogReturn (max_lag = 10):
+#            lag   lb_stat   lb_pvalue
+# X-squared    1  2.151626 0.142418961
+# X-squared1   2  5.436812 0.065979849
+# X-squared2   3 11.668729 0.008608552
+# X-squared3   4 13.494766 0.009095025
+# X-squared4   5 13.494803 0.019157864
+# X-squared5   6 14.136206 0.028151125
+# X-squared6   7 14.294220 0.046189081
+# X-squared7   8 14.502604 0.069569836
+# X-squared8   9 14.574400 0.103309632
+# X-squared9  10 14.775374 0.140468457
 ##################################################################################################################################################
