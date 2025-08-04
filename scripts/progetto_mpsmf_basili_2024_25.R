@@ -18,6 +18,16 @@ if (!require("CADFtest")) {
   install.packages("CADFtest")
   library(CADFtest)
 }
+
+if (!require("fDMA")) {
+  install.packages("fDMA")
+  library(fDMA)
+}
+
+if (!require("rugarch")) {
+  install.packages("rugarch")
+  library(rugarch)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -402,6 +412,40 @@ for (ticker in tickers) {
 # di un modello più avanzato per gestire la volatilità nel tempo.
 ##################################################################################################################################################
 
+# Calcolo del numero totale di osservazioni
+total_rows <- nrow(merged_data)
+
+# Calcolo del limite per l'80% (training set)
+split_index <- floor(total_rows * 0.8)
+
+# Estrazione del training set
+training_set <- merged_data %>%
+  arrange(Index) %>%
+  slice(1:split_index)
+
+# Controlla la struttura finale
+glimpse(training_set)
+# Rows: 400
+# Columns: 15
+# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, …
+# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 4…
+# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.…
+# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 1…
+# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, …
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 4…
+# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573…
+# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 1…
+# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 1…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54…
+# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101…
+# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.54091033…
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0…
+
+# Salva il training set
+write_csv(training_set, file.path(data_folder, "training_set_with_log_returns_and_rf.csv"))
+
 ################################################### Analisi di Autocorrelazione sui Rendimenti Logaritmici #######################################
 # Autocorrelogramma
 plot_acf <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)) {
@@ -459,7 +503,7 @@ plot_acf <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99))
 
 # Plot ACF per ogni titolo
 for (col in risky_logreturn_cols) {
-  plot_acf(merged_data, col)
+  plot_acf(training_set, col)
 }
 
 # La tolleranza rigorosa per i picchi è:
@@ -468,12 +512,12 @@ for (col in risky_logreturn_cols) {
 # - per la linea di confidenza del 95%: ⌊(maxlag × 0.05)⌋ = ⌊(10 × 0.05)⌋ = 0
 # - per la linea di confidenza del 99%: ⌊(maxlag × 0.01)⌋ = ⌊(10 × 0.01)⌋ = 0
 
-# Questa viene sempre rispettata da UNH_LogReturn, JPM_LogReturn e AMZN_LogReturn, per cui possiamo assumere l’assenza di autocorrelazione con
-# significatività α = 0.10, α = 0.05 e α = 0.01 per queste serie storiche. Per le serie SPY_LogReturn e AAPL_LogReturn la tolleranza rigorosa
-# viene rispettata solo con significatività α = 0.01. Per la variabile XOM_LogReturn, invece, la tolleranza rigorosa non viene mai rispettata.
+# Questa viene sempre rispettata da SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn e XOM_LogReturn, per cui possiamo assumere l’assenza di
+# autocorrelazione con significatività α = 0.10, α = 0.05 e α = 0.01 per queste serie storiche. Per la serie UNH_LogReturn la tolleranza
+# rigorosa viene rispettata con significatività α = 0.05. Per la serie AMZN_LogReturn, invece, la tolleranza rigorosa viene rispettata solo
+# con significatività α = 0.01.
 #
-# Per ora, non possiamo, quindi, assumere l’assenza di autocorrelazione per la serie XOM_LogReturn, mentre possiamo assumere l'assenza di
-# autocorrelazione per tutte le altre serie storiche con un livello di significatività α = 0.01.
+# Per ora, quindi, possiamo assumere l'assenza di autocorrelazione per tutte le serie storiche con un livello di significatività α = 0.01.
 #
 # Ricordiamo, però, che l’assenza di autocorrelazione non implica indipendenza, ma solo che non ci sono evidenze di correlazioni sequenziali
 # significative nei dati. 
@@ -535,11 +579,10 @@ plot_pacf <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)
 
 # Plot PACF per ogni titolo
 for (col in risky_logreturn_cols) {
-  plot_pacf(merged_data, col)
+  plot_pacf(training_set, col)
 }
 
-# Nel PACF, ora, per la serie XOM_LogReturn possiamo assumere l'assenza di autocorrelazione parziale con significatività α = 0.01, mentre per le
-# altre serie possiamo trarre le stesse conclusioni di prima.
+# Nel PACF possiamo trarre le stesse conclusioni di prima.
 
 # In aggiunta alle evidenze grafiche degli autocorrelogrammi, integriamo le osservazioni con il test di Ljung-Box, che forniscono una
 # valutazione quantitativa più robusta dell'ipotesi di assenza di autocorrelazione.
@@ -580,94 +623,94 @@ ljungbox_test <- function(series, col_name = NULL) {
 
 # Esegui il test per ciascuna serie
 for (col in risky_logreturn_cols) {
-  ljungbox_test(merged_data[[col]], col_name = col)
+  ljungbox_test(training_set[[col]], col_name = col)
 }
 # Ljung-Box test per SPY_LogReturn (max_lag = 10):
-#            lag   lb_stat   lb_pvalue
-# X-squared    1  2.151626 0.142418961
-# X-squared1   2  5.436812 0.065979849
-# X-squared2   3 11.668729 0.008608552
-# X-squared3   4 13.494766 0.009095025
-# X-squared4   5 13.494803 0.019157864
-# X-squared5   6 14.136206 0.028151125
-# X-squared6   7 14.294220 0.046189081
-# X-squared7   8 14.502604 0.069569836
-# X-squared8   9 14.574400 0.103309632
-# X-squared9  10 14.775374 0.140468457
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.7603370 0.3832231
+# X-squared1   2 0.8638688 0.6492520
+# X-squared2   3 1.0758307 0.7829116
+# X-squared3   4 1.0897241 0.8958991
+# X-squared4   5 2.7215923 0.7428141
+# X-squared5   6 2.7531034 0.8391355
+# X-squared6   7 3.7957194 0.8029830
+# X-squared7   8 3.8413651 0.8711448
+# X-squared8   9 3.9453148 0.9149747
+# X-squared9  10 5.4709378 0.8575848
 # 
 # Ljung-Box test per AAPL_LogReturn (max_lag = 10):
-#            lag    lb_stat  lb_pvalue
-# X-squared    1  0.8107328 0.36790368
-# X-squared1   2  5.1030605 0.07796227
-# X-squared2   3  7.9138552 0.04782602
-# X-squared3   4  9.8854829 0.04240153
-# X-squared4   5 13.3245762 0.02051976
-# X-squared5   6 13.3245978 0.03816132
-# X-squared6   7 14.3646265 0.04506339
-# X-squared7   8 14.3735117 0.07253460
-# X-squared8   9 14.7355257 0.09846154
-# X-squared9  10 15.9176791 0.10201330
+#            lag  lb_stat lb_pvalue
+# X-squared    1 2.545114 0.1106359
+# X-squared1   2 2.620594 0.2697399
+# X-squared2   3 3.004504 0.3909312
+# X-squared3   4 3.959769 0.4114780
+# X-squared4   5 5.280014 0.3826712
+# X-squared5   6 5.598484 0.4696343
+# X-squared6   7 5.624032 0.5842684
+# X-squared7   8 5.878393 0.6608515
+# X-squared8   9 6.088558 0.7310233
+# X-squared9  10 7.232670 0.7033120
 # 
 # Ljung-Box test per UNH_LogReturn (max_lag = 10):
-#            lag  lb_stat  lb_pvalue
-# X-squared    1 2.940947 0.08636007
-# X-squared1   2 3.298267 0.19221636
-# X-squared2   3 3.339238 0.34221873
-# X-squared3   4 3.988325 0.40758818
-# X-squared4   5 4.088408 0.53675893
-# X-squared5   6 4.203304 0.64918531
-# X-squared6   7 4.825012 0.68130796
-# X-squared7   8 4.968564 0.76093074
-# X-squared8   9 5.333322 0.80433781
-# X-squared9  10 5.336205 0.86761801
+#            lag    lb_stat lb_pvalue
+# X-squared    1  0.3568924 0.5502372
+# X-squared1   2  0.8851608 0.6423767
+# X-squared2   3  4.4100307 0.2204571
+# X-squared3   4  4.6094922 0.3297612
+# X-squared4   5  5.2975760 0.3806530
+# X-squared5   6  5.4318134 0.4897360
+# X-squared6   7  7.3783980 0.3905719
+# X-squared7   8 10.8019104 0.2131778
+# X-squared8   9 11.3156052 0.2546946
+# X-squared9  10 11.4777440 0.3215273
 # 
 # Ljung-Box test per JPM_LogReturn (max_lag = 10):
-#            lag     lb_stat lb_pvalue
-# X-squared    1 0.001371536 0.9704577
-# X-squared1   2 1.355756630 0.5076930
-# X-squared2   3 1.793473236 0.6163563
-# X-squared3   4 3.485675208 0.4800598
-# X-squared4   5 4.276157826 0.5103789
-# X-squared5   6 5.491555824 0.4824779
-# X-squared6   7 5.985976342 0.5413878
-# X-squared7   8 8.499269274 0.3862782
-# X-squared8   9 8.510487630 0.4836287
-# X-squared9  10 8.720641589 0.5588051
+#            lag    lb_stat lb_pvalue
+# X-squared    1  0.7464076 0.3876160
+# X-squared1   2  0.8242773 0.6622324
+# X-squared2   3  1.9054520 0.5922604
+# X-squared3   4  3.8655409 0.4245086
+# X-squared4   5  4.9624905 0.4204751
+# X-squared5   6  6.9821230 0.3225036
+# X-squared6   7  8.4629179 0.2935474
+# X-squared7   8  9.6994803 0.2867551
+# X-squared8   9 10.2648772 0.3294707
+# X-squared9  10 11.9328604 0.2895750
 # 
 # Ljung-Box test per AMZN_LogReturn (max_lag = 10):
-#            lag   lb_stat lb_pvalue
-# X-squared    1 0.4867213 0.4853935
-# X-squared1   2 2.1606233 0.3394897
-# X-squared2   3 2.2306694 0.5259328
-# X-squared3   4 2.2936766 0.6819206
-# X-squared4   5 2.5839026 0.7638095
-# X-squared5   6 2.5845335 0.8588897
-# X-squared6   7 3.4591562 0.8395325
-# X-squared7   8 4.0805986 0.8497793
-# X-squared8   9 4.8519644 0.8470172
-# X-squared9  10 4.8660782 0.8999426
+#            lag     lb_stat  lb_pvalue
+# X-squared    1  0.02628823 0.87119839
+# X-squared1   2  5.67353455 0.05861485
+# X-squared2   3  6.26852633 0.09925215
+# X-squared3   4  7.55877701 0.10914523
+# X-squared4   5  7.62915810 0.17789255
+# X-squared5   6  7.66596060 0.26361132
+# X-squared6   7  8.62855921 0.28043497
+# X-squared7   8  8.83068307 0.35678019
+# X-squared8   9 11.49368586 0.24337990
+# X-squared9  10 12.51747217 0.25191479
 # 
 # Ljung-Box test per XOM_LogReturn (max_lag = 10):
-#            lag     lb_stat lb_pvalue
-# X-squared    1  0.06534642 0.7982370
-# X-squared1   2  0.60308064 0.7396780
-# X-squared2   3  0.98284967 0.8054017
-# X-squared3   4  1.21406500 0.8757775
-# X-squared4   5  2.25732414 0.8125140
-# X-squared5   6  2.41337197 0.8780340
-# X-squared6   7  9.13177403 0.2433332
-# X-squared7   8  9.66440497 0.2893746
-# X-squared8   9 13.54618546 0.1394087
-# X-squared9  10 13.66088282 0.1890292
+#            lag    lb_stat lb_pvalue
+# X-squared    1 0.02959503 0.8634123
+# X-squared1   2 1.31590673 0.5179102
+# X-squared2   3 1.31745567 0.7249923
+# X-squared3   4 1.31752146 0.8583958
+# X-squared4   5 2.55017761 0.7689200
+# X-squared5   6 2.57036758 0.8605108
+# X-squared6   7 4.79470366 0.6849999
+# X-squared7   8 4.79776060 0.7789569
+# X-squared8   9 4.83864377 0.8481411
+# X-squared9  10 5.21272625 0.8765221
 
-# Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return, osserviamo:
-# - SPY_LogReturn e AAPL_LogReturn mostrano p-value significativamente bassi (inferiori a 0.05) per diversi lag, specialmente tra lag 3 e lag 7.
-#   Ciò indica che possiamo rifiutare l’ipotesi nulla di assenza di autocorrelazione per questi lag. Pertanto, per questi titoli c’è evidenza
-#   statistica di autocorrelazione nelle serie di rendimenti logaritmici.
-# - Per UNH_LogReturn, JPM_LogReturn, AMZN_LogReturn e XOM_LogReturn, i p-value sono generalmente alti (superiori a 0.05) per tutti i lag
-#   considerati. Non abbiamo quindi evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
-#   Tuttavia, questo non significa che possiamo affermare con certezza che non esista autocorrelazione, ma semplicemente che il test non ne
-#   rileva in modo significativo.
+# Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return, osserviamo che questi sono tutti maggiori di α = 0.01 (in realtà
+# anche di α = 0.05). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione fino al lag specificato.
+#
+# Ovviamente, sottolineiamo ancora come il test non conferma la scorrelazione, ma piuttosto che non c'è evidenza sufficiente per dimostrare
+# il contrario (come detto più volte a lezione: l'assenza di prove a un processo non implica necessariamente innocenza).
+#
+# Dunque, non possiamo rifiutare l'ipotesi nulla: i dati non sono autocorrelati.
 ##################################################################################################################################################
 
 ################################################### Analisi di Cross-Correlazione sui Rendimenti Logaritmici #####################################
@@ -684,17 +727,17 @@ calculate_cov_matrix <- function(df, columns) {
   return(cov_matrix)
 }
 
-cov_matrix <- calculate_cov_matrix(merged_data, risky_logreturn_cols)
+cov_matrix <- calculate_cov_matrix(training_set, risky_logreturn_cols)
 
 # Mostra la matrice
 print(round(cov_matrix, 4))
 #                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
-# SPY_LogReturn         1.0669         1.2488        0.1862        0.9508         1.4718        0.4726
-# AAPL_LogReturn        1.2488         2.9768       -0.0220        0.8446         1.6145        0.5394
-# UNH_LogReturn         0.1862        -0.0220        5.4824        0.2086         0.0014        0.0053
-# JPM_LogReturn         0.9508         0.8446        0.2086        2.1589         1.1316        0.7445
-# AMZN_LogReturn        1.4718         1.6145        0.0014        1.1316         3.8201        0.2746
-# XOM_LogReturn         0.4726         0.5394        0.0053        0.7445         0.2746        1.9861
+# SPY_LogReturn         0.6319         0.6072        0.1288        0.5024         0.9705        0.1548
+# AAPL_LogReturn        0.6072         2.0117       -0.0064        0.1332         0.8353       -0.0238
+# UNH_LogReturn         0.1288        -0.0064        2.6175        0.2437        -0.1203        0.2063
+# JPM_LogReturn         0.5024         0.1332        0.2437        1.8089         0.5487        0.4881
+# AMZN_LogReturn        0.9705         0.8353       -0.1203        0.5487         3.2796       -0.1341
+# XOM_LogReturn         0.1548        -0.0238        0.2063        0.4881        -0.1341        1.6489
 
 # Visualizza la matrice di varianza-covarianza con una heatmap
 ggcorrplot(cov_matrix, lab = TRUE, lab_size = 3, type = "lower",
@@ -722,20 +765,58 @@ plot_corr_heatmap <- function(data, title) {
 }
 
 # Seleziona i rendimenti logaritmici dei soli titoli rischiosi
-risky_returns_df <- merged_data %>%
+risky_returns_df <- training_set %>%
   select(all_of(risky_logreturn_cols)) %>%
   na.omit()
 
-# Genera la heatmap
+# Stampa la matrice di correlazione dei rendimenti logaritmici
+corr_returns <- cor(risky_returns_df, use = "pairwise.complete.obs")
+print(round(corr_returns, 4))
+#                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
+# SPY_LogReturn         1.0000         0.5385        0.1001        0.4699         0.6742        0.1517
+# AAPL_LogReturn        0.5385         1.0000       -0.0028        0.0698         0.3252       -0.0131
+# UNH_LogReturn         0.1001        -0.0028        1.0000        0.1120        -0.0411        0.0993
+# JPM_LogReturn         0.4699         0.0698        0.1120        1.0000         0.2253        0.2826
+# AMZN_LogReturn        0.6742         0.3252       -0.0411        0.2253         1.0000       -0.0577
+# XOM_LogReturn         0.1517        -0.0131        0.0993        0.2826        -0.0577        1.0000
+
+# Stampa la matrice di correlazione dei quadrati dei rendimenti
+corr_squared_returns <- cor(risky_returns_df^2, use = "pairwise.complete.obs")
+print(round(corr_squared_returns, 4))
+#                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
+# SPY_LogReturn         1.0000         0.2354        0.0921        0.3146         0.3617        0.0338
+# AAPL_LogReturn        0.2354         1.0000        0.0280        0.0004         0.1300       -0.0393
+# UNH_LogReturn         0.0921         0.0280        1.0000        0.1440         0.0250        0.0836
+# JPM_LogReturn         0.3146         0.0004        0.1440        1.0000         0.1597        0.0785
+# AMZN_LogReturn        0.3617         0.1300        0.0250        0.1597         1.0000       -0.0168
+# XOM_LogReturn         0.0338        -0.0393        0.0836        0.0785        -0.0168        1.0000
+
+# Stampa la matrice di correlazione dei valori assoluti
+corr_abs_returns <- cor(abs(risky_returns_df), use = "pairwise.complete.obs")
+print(round(corr_abs_returns, 4))
+#                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
+# SPY_LogReturn         1.0000         0.3263        0.0764        0.3183         0.4847        0.0304
+# AAPL_LogReturn        0.3263         1.0000        0.0178        0.0405         0.1775       -0.0160
+# UNH_LogReturn         0.0764         0.0178        1.0000        0.1707         0.0239        0.0373
+# JPM_LogReturn         0.3183         0.0405        0.1707        1.0000         0.1957        0.1218
+# AMZN_LogReturn        0.4847         0.1775        0.0239        0.1957         1.0000        0.0257
+# XOM_LogReturn         0.0304        -0.0160        0.0373        0.1218         0.0257        1.0000
+
+# Genera le heatmaps
 plot_corr_heatmap(risky_returns_df, "Matrice di Correlazione dei Rendimenti Logaritmici dei Titoli Rischiosi")
-
 plot_corr_heatmap(risky_returns_df^2, "Matrice di Correlazione dei Quadrati dei Rendimenti Logaritmici dei Titoli Rischiosi")
-
 plot_corr_heatmap(abs(risky_returns_df), "Matrice di Correlazione dei Valori Assoluti dei Rendimenti Logaritmici dei Titoli Rischiosi")
 
-# Dai risultati ottenuti, osserviamo che i coefficienti di correlazione sono quasi tutti molto alti, il che suggerisce che esiste una
-# correlazione significativa tra le serie, tranne che per la serie UNH_LogReturn e tutte le altre. Pertanto, non possiamo considerare
-# l’ipotesi che le serie siano completamente indipendenti tra loro.
+# L’analisi della matrice di correlazione sui rendimenti logaritmici giornalieri mostra che solo alcune coppie di titoli presentano
+# correlazioni moderate o relativamente forti, come ad esempio SPY–AMZN e SPY–AAPL.
+#
+# La maggior parte delle correlazioni è debole o trascurabile, specialmente tra UNH e gli altri titoli, il che indica che non tutte le serie
+# si muovono in modo sincronizzato.
+#
+# Le correlazioni calcolate sui valori assoluti e sui quadrati dei rendimenti indicano una debole co-movimentazione della volatilità,
+# ma non suggeriscono una forte dipendenza in termini di direzione del movimento dei prezzi.
+#
+# Pertanto, non possiamo considerare l’ipotesi che le serie siano completamente indipendenti tra loro.
 
 
 # Likelihood Ratio Test.
@@ -779,10 +860,15 @@ lr_test <- function(df, alpha = 0.10) {
   }
 }
 
+# Calcolo sui soli rendimenti del training set
+log_return_training <- training_set %>%
+  select(all_of(risky_logreturn_cols)) %>%
+  na.omit()
+
 # Esegue il test
-lr_test(log_return_clean, alpha = 0.01)
+lr_test(log_return_training, alpha = 0.01)
 # Likelihood Ratio Test
-# Statistic: 1104.484370
+# Statistic: 582.247179
 # p-value: 0
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
@@ -810,9 +896,9 @@ lr_test(log_return_clean, alpha = 0.01)
 #
 # - H_0: La serie ha una radice unitaria → NON stazionaria;
 # - H_1 (a seconda del modello):
-#   - none: serie STAZIONARIA con media zero (nessun intercept);
-#   - drift: serie STAZIONARIA con media costante (intercept);
-#   - trend: serie STAZIONARIA attorno a un trend lineare (intercept + trend).
+#   - none: Serie STAZIONARIA con media zero (nessun intercept);
+#   - drift: Serie STAZIONARIA con media costante (intercept);
+#   - trend: Serie STAZIONARIA attorno a un trend lineare (intercept + trend).
 adf_test_all <- function(data, col, alpha = 0.01) {
   x <- na.omit(data[[col]])
   
@@ -839,10 +925,11 @@ adf_test_all <- function(data, col, alpha = 0.01) {
 }
 
 # Esegue il test ADF
-adf_test_all(merged_data, "SPY_AdjClose")
+adf_test_all(training_set, "SPY_AdjClose")
+#
 # [SPY_AdjClose] ADF Test - Senza Intercetta
-# Statistic: 1.588481
-# p-value  : 0.97284
+# Statistic: 1.457150
+# p-value  : 0.964231
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -850,8 +937,8 @@ adf_test_all(merged_data, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] ADF Test - Con Intercetta (Drift)
-# Statistic: -0.572014
-# p-value  : 0.873703
+# Statistic: -0.808345
+# p-value  : 0.815276
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -859,8 +946,8 @@ adf_test_all(merged_data, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] ADF Test - Con Intercetta e Trend
-# Statistic: -2.594388
-# p-value  : 0.283127
+# Statistic: -2.934036
+# p-value  : 0.152864
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -874,8 +961,8 @@ adf_test_all(merged_data, "SPY_AdjClose")
 #
 # - H_0: La serie è stazionaria (nessuna radice unitaria);
 # - H_1 (a seconda del modello):
-#   - Level: la serie NON è stazionaria → ha una radice unitaria rispetto al livello (cioè la media varia nel tempo);
-#   - Trend: la serie NON è stazionaria → ha una radice unitaria rispetto al trend (cioè non staziona attorno a un trend deterministico).
+#   - Level: La serie NON è stazionaria → ha una radice unitaria rispetto al livello (cioè la media varia nel tempo);
+#   - Trend: La serie NON è stazionaria → ha una radice unitaria rispetto al trend (cioè non staziona attorno a un trend deterministico).
 kpss_test_all <- function(data, col, alpha = 0.01) {
   x <- na.omit(data[[col]])
   
@@ -938,9 +1025,10 @@ kpss_test_all <- function(data, col, alpha = 0.01) {
 }
 
 # Esegue il test KPSS
-kpss_test_all(merged_data, "SPY_AdjClose")
+kpss_test_all(training_set, "SPY_AdjClose")
+#
 # [SPY_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
-# Statistic: 7.440873
+# Statistic: 6.563054
 # Valore critico (circa 1%): 0.739000
 # Interpretazione del p-value: p-value < 0.01
 # 
@@ -950,7 +1038,7 @@ kpss_test_all(merged_data, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
-# Statistic: 0.965340
+# Statistic: 0.278260
 # Valore critico (circa 1%): 0.216000
 # Interpretazione del p-value: p-value < 0.01
 # 
@@ -970,10 +1058,11 @@ kpss_test_all(merged_data, "SPY_AdjClose")
 
 # Stazionarietà dei rendimenti logaritmici:
 # ADF Test
-adf_test_all(merged_data, "SPY_LogReturn")
+adf_test_all(training_set, "SPY_LogReturn")
+#
 # [SPY_LogReturn] ADF Test - Senza Intercetta
-# Statistic: -14.977208
-# p-value  : 3.49039e-31
+# Statistic: -18.976249
+# p-value  : 2.51358e-37
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -981,8 +1070,8 @@ adf_test_all(merged_data, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] ADF Test - Con Intercetta (Drift)
-# Statistic: -15.083055
-# p-value  : 1.28862e-30
+# Statistic: -19.084201
+# p-value  : 1.85222e-34
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -990,8 +1079,8 @@ adf_test_all(merged_data, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] ADF Test - Con Intercetta e Trend
-# Statistic: -15.067622
-# p-value  : 7.68936e-34
+# Statistic: -19.065190
+# p-value  : 2.33523e-40
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -999,9 +1088,10 @@ adf_test_all(merged_data, "SPY_LogReturn")
 
 
 # KPSS Test
-kpss_test_all(merged_data, "SPY_LogReturn")
+kpss_test_all(training_set, "SPY_LogReturn")
+#
 # [SPY_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
-# Statistic: 0.058694
+# Statistic: 0.102447
 # Valore critico (circa 1%): 0.739000
 # Interpretazione del p-value: p-value > 0.10
 # 
@@ -1011,7 +1101,7 @@ kpss_test_all(merged_data, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
-# Statistic: 0.063419
+# Statistic: 0.097492
 # Valore critico (circa 1%): 0.216000
 # Interpretazione del p-value: p-value > 0.10
 # 
@@ -1030,7 +1120,7 @@ kpss_test_all(merged_data, "SPY_LogReturn")
 # Il test ha come:
 #
 # - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
-# - H_1: i dati NON sono omoschedastici (SONO eteroschedastici).
+# - H_1: I dati NON sono omoschedastici (SONO eteroschedastici).
 breusch_pagan_test <- function(index, group, col, alpha = 0.01) {
   model <- lm(group ~ index)
   bp <- lmtest::bptest(model)
@@ -1050,15 +1140,15 @@ breusch_pagan_test <- function(index, group, col, alpha = 0.01) {
 }
 
 # Estrai index e group, rimuovi righe con NA in group
-valid_rows <- !is.na(merged_data$SPY_LogReturn)
-index_clean <- merged_data$Index[valid_rows]
-group_clean <- merged_data$SPY_LogReturn[valid_rows]
+valid_rows <- !is.na(training_set$SPY_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$SPY_LogReturn[valid_rows]
 
 # Esegue il test di Breusch-Pagan
 breusch_pagan_test(index_clean, group_clean, "SPY_LogReturn")
 # [SPY_LogReturn] Breusch-Pagan Test
-# Statistic: 6.215749
-# p-value: 0.0126619
+# Statistic: 1.873334
+# p-value: 0.171094
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1070,7 +1160,7 @@ breusch_pagan_test(index_clean, group_clean, "SPY_LogReturn")
 # Il test ha come:
 #
 # - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
-# - H_1: i dati NON sono omoschedastici (SONO eteroschedastici).
+# - H_1: I dati NON sono omoschedastici (SONO eteroschedastici).
 white_test <- function(index, group, col, alpha = 0.01) {
   model <- lm(group ~ index)
   
@@ -1093,8 +1183,8 @@ white_test <- function(index, group, col, alpha = 0.01) {
 # Esegue il test di White
 white_test(index_clean, group_clean, "SPY_LogReturn")
 # [SPY_LogReturn] White Test
-# Statistic: 6.771341
-# p-value: 0.0338549
+# Statistic: 2.572405
+# p-value: 0.276318
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1108,17 +1198,603 @@ white_test(index_clean, group_clean, "SPY_LogReturn")
 # Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi allo S&P 500.
 
 # Test di Ljung-Box
-ljungbox_test(merged_data[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
+ljungbox_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
 # Ljung-Box test per SPY_LogReturn (max_lag = 10):
-#            lag   lb_stat   lb_pvalue
-# X-squared    1  2.151626 0.142418961
-# X-squared1   2  5.436812 0.065979849
-# X-squared2   3 11.668729 0.008608552
-# X-squared3   4 13.494766 0.009095025
-# X-squared4   5 13.494803 0.019157864
-# X-squared5   6 14.136206 0.028151125
-# X-squared6   7 14.294220 0.046189081
-# X-squared7   8 14.502604 0.069569836
-# X-squared8   9 14.574400 0.103309632
-# X-squared9  10 14.775374 0.140468457
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.7603370 0.3832231
+# X-squared1   2 0.8638688 0.6492520
+# X-squared2   3 1.0758307 0.7829116
+# X-squared3   4 1.0897241 0.8958991
+# X-squared4   5 2.7215923 0.7428141
+# X-squared5   6 2.7531034 0.8391355
+# X-squared6   7 3.7957194 0.8029830
+# X-squared7   8 3.8413651 0.8711448
+# X-squared8   9 3.9453148 0.9149747
+# X-squared9  10 5.4709378 0.8575848
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+# L’assenza di forte autocorrelazione giustifica ulteriormente l’uso di un modello GARCH.
+
+
+# ACF
+plot_acf(training_set, "SPY_LogReturn")
+
+# PACF
+plot_pacf(training_set, "SPY_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Infine, è fondamentale verificare l'esistenza dell'eteroschedasticità condizionata, ovvero se la varianza cambia nel tempo in modo sistematico.
+# Se tale condizione non fosse presente, allora sarebbe inappropriato utilizzare un modello GARCH.
+
+# Test ARCH di Engle.
+# Il test ARCH di Engle è un test LM (Lagrange Multiplier) che ha come:
+#
+# - H_0: La serie non presenta effetti ARCH;
+# - H_1: La serie presenta effetti ARCH con un certo ritardo (lag).
+arch_effects_test <- function(series, col_name = NULL) {
+  series <- as.numeric(na.omit(series))
+  max_lag <- 5
+  
+  cat(sprintf("ARCH Test per %s (max_lag = %d):\n", col_name %||% "", max_lag))
+  
+  results <- data.frame(
+    lag = integer(),
+    arch_stat = numeric(),
+    arch_pvalue = numeric()
+  )
+  
+  for (lag in 1:max_lag) {
+    test_res <- fDMA::archtest(series, lag = lag)
+    results <- rbind(results, data.frame(
+      lag = lag,
+      arch_stat = test_res$statistic,
+      arch_pvalue = test_res$p.value
+    ))
+  }
+  
+  print(results)
+  cat("\n")
+}
+
+# Esegue il test ARCH di Engle
+arch_effects_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
+# ARCH Test per SPY_LogReturn (max_lag = 5):
+#            lag arch_stat arch_pvalue
+# statistic    1  1.048248  0.30591092
+# statistic1   2  1.631908  0.44221733
+# statistic2   3  7.972773  0.04657777
+# statistic3   4  8.623328  0.07123587
+# statistic4   5  9.363585  0.09541163
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività del 5% al lag 3 e con un livello di significatività del 10% a partire dal lag 3.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dell’S&P 500
+# presenti nel training set.
+
+
+# Utilizziamo, dunque, il modello GARCH per stimare la volatilità dei ritorni logaritmici ed esploriamo diverse configurazioni di parametri
+# p e q (escluso il caso p = q = 0, al variare di p e q tra 0,..,4), per poi selezionare il modello che massimizza la Log-Likelihood e
+# minimizza AIC/BIC, bilanciando, così, il trade-off tra adattamento e complessità.
+# Per fare ciò, ci avvaliamo della libreria rugarch.
+
+# Serie dei rendimenti logaritmici
+returns <- na.omit(training_set$SPY_LogReturn)
+
+# Data frame per salvare i risultati
+model_results <- data.frame(
+  p = integer(),
+  q = integer(),
+  loglik = numeric(),
+  AIC = numeric(),
+  BIC = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Loop su p e q in {0,1,2,3,4} escluso p=0, q=0
+for (p in 0:4) {
+  for (q in 0:4) {
+    if (p == 0 && q == 0) next  # salta il caso p = 0 e q = 0
+    
+    spec <- ugarchspec(
+      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+      distribution.model = "norm"
+    )
+    
+    tryCatch({
+      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
+      model_results <- rbind(model_results, data.frame(
+        p = p,
+        q = q,
+        loglik = likelihood(fit),
+        AIC = infocriteria(fit)[1],
+        BIC = infocriteria(fit)[2]
+      ))
+    }, error = function(e) {
+      message(sprintf("Errore per GARCH(%d,%d): %s", p, q, e$message))
+    })
+  }
+}
+
+# Ranking (minore è meglio per AIC/BIC, maggiore è meglio per log-likelihood)
+model_results$rank_loglik <- rank(-model_results$loglik, ties.method = "min")
+model_results$rank_AIC <- rank(model_results$AIC, ties.method = "min")
+model_results$rank_BIC <- rank(model_results$BIC, ties.method = "min")
+
+# Somma dei ranghi: punteggio complessivo (basso è meglio)
+model_results$total_score <- model_results$rank_loglik + model_results$rank_AIC + model_results$rank_BIC
+
+# Ordina per punteggio totale
+model_results <- model_results[order(model_results$total_score), ]
+
+# Stampa i primi 5 modelli migliori
+print(head(model_results, 5))
+#    p q    loglik      AIC      BIC rank_loglik rank_AIC rank_BIC total_score
+# 5  1 0 -474.6866 2.389406 2.409401           5        2        1           8
+# 15 3 0 -472.1077 2.386505 2.426495           2        1        6           9
+# 20 4 0 -471.8992 2.390472 2.440459           1        3        7          11
+# 10 2 0 -474.4540 2.393253 2.423245           4        5        3          12
+# 2  0 2 -475.0407 2.396194 2.426186          17        6        4          27
+
+# Estrai modello "ottimale" secondo il punteggio combinato
+best_p <- model_results$p[1]
+best_q <- model_results$q[1]
+
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p, best_q))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
+
+# Stima finale
+best_spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(best_p, best_q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = "norm"
+)
+
+best_fit <- ugarchfit(spec = best_spec, data = returns)
+
+# Mostra i risultati finali
+show(best_fit)
+#
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : norm 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.598388    0.053273  11.2324   0.0000
+# alpha1  0.059943    0.058728   1.0207   0.3074
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.598388    0.070563  8.48025  0.00000
+# alpha1  0.059943    0.090672  0.66109  0.50855
+# 
+# LogLikelihood : -474.6866 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3894
+# Bayes        2.4094
+# Shibata      2.3894
+# Hannan-Quinn 2.3973
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.5536  0.4569
+# Lag[2*(p+q)+(p+q)-1][2]    0.5733  0.6602
+# Lag[4*(p+q)+(p+q)-1][5]    1.0371  0.8512
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.08733  0.7676
+# Lag[2*(p+q)+(p+q)-1][2]   0.23461  0.8333
+# Lag[4*(p+q)+(p+q)-1][5]   4.01020  0.2528
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[2]    0.2916 0.500 2.000 0.58918
+# ARCH Lag[4]    4.5080 1.397 1.611 0.11573
+# ARCH Lag[6]    7.0627 2.222 1.500 0.06824
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.3028
+# Individual Statistics:             
+# omega  0.2460
+# alpha1 0.1291
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   0.61 0.749 1.07
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          1.78678 0.07474   *
+# Negative Sign Bias 0.19592 0.84477    
+# Positive Sign Bias 0.04405 0.96489    
+# Joint Effect       6.80731 0.07830   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     41.65     0.001975
+# 2    30     55.96     0.001910
+# 3    40     61.25     0.012945
+# 4    50     74.56     0.010759
+# 
+# 
+# Elapsed time : 0.1311309
+
+
+# Adesso, dopo aver stimato il modello GARCH migliore, possiamo estrarre facilmente i residui standardizzati, analizzarli e usarli
+# per verificare se il modello ha effettivamente catturato la dinamica della volatilità.
+
+# Estrai residui standardizzati
+z_hat <- residuals(best_fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.8035051
+# 2023-08-03 -0.3391767
+# 2023-08-04 -0.5835744
+# 2023-08-07  1.1120581
+# 2023-08-08 -0.5432201
+
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Test di Shapiro-Wilk (SW).
+# Questo test è uno dei più potenti per la verifica della normalità, specialmente con campioni piccoli o medi. È molto sensibile a
+# deviazioni dalla normalità sia nelle code che nella parte centrale della distribuzione. Il test ha come:
+#
+# - H_0: I dati PROVENGONO da una distribuzione normale;
+# - H_1: I dati NON provengono da una distribuzione normale.
+shapirowilk_test <- function(x, name = "Serie", alpha = 0.01) {
+  test <- shapiro.test(x)
+  
+  cat(sprintf("\n[%s] Shapiro-Wilk Test\n", name))
+    
+  cat(sprintf("Statistic: %f\n", test$statistic))
+  cat(sprintf("p-value  : %g\n", test$p.value))
+    
+  if (test$p.value <= alpha) {
+    cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON seguono una distribuzione normale.\n\n", alpha, alpha * 100))
+  } else {
+    cat(sprintf("\n** CONCLUSIONE: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SEGUONO una distribuzione normale.\n\n", alpha, alpha * 100))
+  }
+}
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+#
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.984416
+# p-value  : 0.000270527
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di Jarque-Bera.
+# Il test di Jarque-Bera (JB) combina test di skewness e kurtosis per verificare la normalità ed è più adatto per campioni più grandi.
+# Tuttavia, sono meno sensibili alle deviazioni rispetto a Shapiro-Wilk, specialmente per campioni piccoli e medi. Il test ha come:
+#
+# - H_0: I dati PROVENGONO da una distribuzione normale;
+# - H_1: I dati NON provengono da una distribuzione normale.
+jarque_bera_test <- function(x, name = "Serie", alpha = 0.01) {
+  test <- jarque.bera.test(x)
+  
+  cat(sprintf("\n[%s] Jarque-Bera Test\n", name))
+  
+  cat(sprintf("Statistic: %f\n", test$statistic))
+  cat(sprintf("p-value  : %g\n", test$p.value))
+  
+  if (test$p.value <= alpha) {
+    cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON seguono una distribuzione normale.\n\n", alpha, alpha * 100))
+  } else {
+    cat(sprintf("\n** CONCLUSIONE: p-value > %.2f **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SEGUONO una distribuzione normale.\n\n", alpha, alpha * 100))
+  }
+}
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+#
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 23.916069
+# p-value  : 6.40754e-06
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Visto che i residui standardizzati del GARCH con distribuzione normale non seguono una distribuzione normale, potrebbe servire un modello
+# con t-Student o GED.
+
+
+# Per catturare meglio la presenza di code pesanti e asimmetrie, stimiamo nuovamente diversi modelli GARCH ma assumendo per i residui:
+# - una distribuzione t-Student;
+# - una distribuzione GED (Generalized Error Distribution).
+
+# Modello con t-Student
+# Data frame per salvare i risultati con distribuzione t-Student
+model_results_t <- data.frame(
+  p = integer(),
+  q = integer(),
+  loglik = numeric(),
+  AIC = numeric(),
+  BIC = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (p in 0:4) {
+  for (q in 0:4) {
+    if (p == 0 && q == 0) next
+    
+    spec <- ugarchspec(
+      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+      distribution.model = "std"  # t-Student
+    )
+    
+    tryCatch({
+      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
+      model_results_t <- rbind(model_results_t, data.frame(
+        p = p,
+        q = q,
+        loglik = likelihood(fit),
+        AIC = infocriteria(fit)[1],
+        BIC = infocriteria(fit)[2]
+      ))
+    }, error = function(e) {
+      message(sprintf("Errore per GARCH(%d,%d) con t-Student: %s", p, q, e$message))
+    })
+  }
+}
+
+# Ranking e selezione analoga a prima
+model_results_t$rank_loglik <- rank(-model_results_t$loglik, ties.method = "min")
+model_results_t$rank_AIC <- rank(model_results_t$AIC, ties.method = "min")
+model_results_t$rank_BIC <- rank(model_results_t$BIC, ties.method = "min")
+model_results_t$total_score <- model_results_t$rank_loglik + model_results_t$rank_AIC + model_results_t$rank_BIC
+model_results_t <- model_results_t[order(model_results_t$total_score), ]
+
+# Stampa i primi 5 modelli migliori con t-Student
+print(head(model_results_t, 5))
+#    p q    loglik      AIC      BIC rank_loglik rank_AIC rank_BIC total_score
+# 16 3 1 -465.9035 2.365431 2.425416           2        1        7          10
+# 5  1 0 -470.7916 2.374895 2.404887           7        4        1          12
+# 15 3 0 -468.6915 2.374394 2.424381           4        3        6          13
+# 21 4 1 -465.4422 2.368131 2.438113           1        2       11          14
+# 10 2 0 -470.5455 2.378674 2.418664           6        7        3          16
+
+# Estrai modello "ottimale" secondo il punteggio combinato
+best_p_t <- model_results_t$p[1]
+best_q_t <- model_results_t$q[1]
+
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_t, best_q_t))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(3,1)
+
+# Stima finale
+best_spec_t <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(best_p_t, best_q_t)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = "std"
+)
+
+best_fit_t <- ugarchfit(spec = best_spec_t, data = returns)
+
+# Mostra i risultati finali
+show(best_fit_t)
+#
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : std 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.101170    0.052076 1.942733 0.052048
+# alpha1  0.000002    0.118059 0.000016 0.999987
+# alpha2  0.020757    0.110639 0.187608 0.851184
+# alpha3  0.104667    0.068155 1.535724 0.124606
+# beta1   0.722564    0.099777 7.241791 0.000000
+# shape   9.345211    4.178368 2.236569 0.025315
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.101170    0.046896  2.157297 0.030983
+# alpha1  0.000002    0.283723  0.000007 0.999995
+# alpha2  0.020757    0.251221  0.082624 0.934151
+# alpha3  0.104667    0.066650  1.570399 0.116322
+# beta1   0.722564    0.061260 11.794967 0.000000
+# shape   9.345211    4.780982  1.954664 0.050623
+# 
+# LogLikelihood : -465.9035 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3654
+# Bayes        2.4254
+# Shibata      2.3650
+# Hannan-Quinn 2.3892
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.2523  0.6155
+# Lag[2*(p+q)+(p+q)-1][2]    0.2837  0.8048
+# Lag[4*(p+q)+(p+q)-1][5]    0.7783  0.9075
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                    0.001155  0.9729
+# Lag[2*(p+q)+(p+q)-1][11]  1.410836  0.9878
+# Lag[4*(p+q)+(p+q)-1][19]  3.102175  0.9941
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.1491 0.500 2.000  0.6994
+# ARCH Lag[7]    0.6365 1.473 1.746  0.8597
+# ARCH Lag[9]    1.6447 2.402 1.619  0.8259
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.0057
+# Individual Statistics:              
+# omega  0.04730
+# alpha1 0.06709
+# alpha2 0.10946
+# alpha3 0.08071
+# beta1  0.04234
+# shape  0.30169
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          2.01387 0.04470  **
+# Negative Sign Bias 0.08586 0.93162    
+# Positive Sign Bias 0.34152 0.73289    
+# Joint Effect       7.56633 0.05588   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     32.43      0.02795
+# 2    30     43.63      0.03976
+# 3    40     61.45      0.01239
+# 4    50     68.04      0.03717
+# 
+# 
+# Elapsed time : 24.1166
+
+# Modello con GED
+# Data frame per salvare i risultati con distribuzione GED
+model_results_ged <- data.frame(
+  p = integer(),
+  q = integer(),
+  loglik = numeric(),
+  AIC = numeric(),
+  BIC = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (p in 0:4) {
+  for (q in 0:4) {
+    if (p == 0 && q == 0) next
+    
+    spec <- ugarchspec(
+      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+      distribution.model = "ged"  # GED
+    )
+    
+    tryCatch({
+      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
+      model_results_ged <- rbind(model_results_ged, data.frame(
+        p = p,
+        q = q,
+        loglik = likelihood(fit),
+        AIC = infocriteria(fit)[1],
+        BIC = infocriteria(fit)[2]
+      ))
+    }, error = function(e) {
+      message(sprintf("Errore per GARCH(%d,%d) con GED: %s", p, q, e$message))
+    })
+  }
+}
+
+# Pulisci i risultati rimuovendo eventuali righe con NA o problemi
+model_results_ged <- model_results_ged[complete.cases(model_results_ged), ]
+
+# Ranking e selezione analoga a prima
+model_results_ged$rank_loglik <- rank(-model_results_ged$loglik, ties.method = "min")
+model_results_ged$rank_AIC <- rank(model_results_ged$AIC, ties.method = "min")
+model_results_ged$rank_BIC <- rank(model_results_ged$BIC, ties.method = "min")
+model_results_ged$total_score <- model_results_ged$rank_loglik + model_results_ged$rank_AIC + model_results_ged$rank_BIC
+model_results_ged <- model_results_ged[order(model_results_ged$total_score), ]
+
+# Stampa i primi 5 modelli migliori con GED
+print(head(model_results_ged, 5))
+#    p q    loglik        AIC        BIC rank_loglik rank_AIC rank_BIC total_score
+# 5  1 0   -1.1000 0.02055138 0.05054357           1        1        1           3
+# 11 2 1 -465.7680 2.35973929 2.40972628           3        2        3           8
+# 21 4 1 -464.4644 2.36323024 2.43321202           2        3       10          15
+# 15 3 0 -467.1013 2.36642274 2.41640972           5        5        6          16
+# 20 4 0 -466.8799 2.37032546 2.43030984           4        6        9          19
+
+# Estrai modello "ottimale" secondo il punteggio combinato
+best_p_ged <- model_results_ged$p[1]
+best_q_ged <- model_results_ged$q[1]
+
+cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_ged, best_q_ged))
+#
+# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
+
+# Stima finale
+best_spec_ged <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(best_p_ged, best_q_ged)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = "ged"
+)
+
+best_fit_ged <- ugarchfit(spec = best_spec_ged, data = returns)
+
+# Mostra i risultati finali
+show(best_fit_ged)
 ##################################################################################################################################################
