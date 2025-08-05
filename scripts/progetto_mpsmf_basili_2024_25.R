@@ -28,6 +28,11 @@ if (!require("rugarch")) {
   install.packages("rugarch")
   library(rugarch)
 }
+
+if (!require("fGarch")) {
+  install.packages("fGarch")
+  library(fGarch)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -1276,100 +1281,187 @@ arch_effects_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
 # presenti nel training set.
 
 
-# Utilizziamo, dunque, il modello GARCH per stimare la volatilità dei ritorni logaritmici ed esploriamo diverse configurazioni di parametri
-# p e q (escluso il caso p = q = 0, al variare di p e q tra 0,..,4), per poi selezionare il modello che massimizza la Log-Likelihood e
-# minimizza AIC/BIC, bilanciando, così, il trade-off tra adattamento e complessità.
-# Per fare ciò, ci avvaliamo della libreria rugarch.
+# Utilizziamo, dunque, il modello GARCH per stimare la volatilità dei ritorni logaritmici,
+# esplorando diverse configurazioni di parametri (p, q) con p, q ∈ {0,...,4}, escludendo il caso p = q = 0.
+# Per ciascuna configurazione, stimiamo il modello con diverse distribuzioni per le innovazioni:
+# - normale ("norm")
+# - skewed Student-t ("sstd")
+# - skewed GED ("sged")
+#
+# Consideriamo solo i modelli per cui la stima converge.
+# Tra questi, ordiniamo i modelli secondo i criteri informativi AICc e BIC, ignorando la log-likelihood (già incorporata in essi).
+# 
+# A partire dai modelli ordinati, selezioniamo il primo che soddisfa le seguenti condizioni sui residui standardizzati:
+#  - assenza di autocorrelazione (verificata tramite test Ljung-Box),
+#  - coerenza con la distribuzione ipotizzata (tramite test di normalità quali SW, JB e QQ-Plot),
+#  - verifica di stazionarietà e omoschedasticità non condizionata (tramite grafico e test quali KPSS, Breusch-Pagan e White),
+#  - assenza di eteroschedasticità condizionata (tramite test ARCH di Engle).
+#
+# Questo approccio consente di selezionare un modello GARCH che bilancia qualità dell’adattamento,
+# parsimonia e correttezza statistica dei residui.
+# La libreria utilizzata per la stima è 'rugarch'.
 
 # Serie dei rendimenti logaritmici
 returns <- na.omit(training_set$SPY_LogReturn)
+
+# Distribuzioni per le innovazioni
+distributions <- c("norm", "sstd", "sged")
 
 # Data frame per salvare i risultati
 model_results <- data.frame(
   p = integer(),
   q = integer(),
-  loglik = numeric(),
+  dist = character(),
+  converged = logical(),
+  hessian_ok = logical(),
   AIC = numeric(),
+  AICc = numeric(),
   BIC = numeric(),
   stringsAsFactors = FALSE
 )
 
-# Loop su p e q in {0,1,2,3,4} escluso p=0, q=0
+# Loop su p e q in {0,1,2,3,4} escluso p = 0, q = 0
 for (p in 0:4) {
   for (q in 0:4) {
-    if (p == 0 && q == 0) next  # salta il caso p = 0 e q = 0
+    if (p == 0 && q == 0) next  # evita GARCH(0,0)
+    for (dist in distributions) {
+      spec <- ugarchspec(
+        variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+        mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+        distribution.model = dist
+      )
     
-    spec <- ugarchspec(
-      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-      distribution.model = "norm"
-    )
-    
-    tryCatch({
-      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
-      model_results <- rbind(model_results, data.frame(
-        p = p,
-        q = q,
-        loglik = likelihood(fit),
-        AIC = infocriteria(fit)[1],
-        BIC = infocriteria(fit)[2]
-      ))
-    }, error = function(e) {
-      message(sprintf("Errore per GARCH(%d,%d): %s", p, q, e$message))
-    })
+      tryCatch({
+        fit <- ugarchfit(spec, data = returns, solver = "hybrid")
+        info_criteria <- infocriteria(fit)
+        loglik <- likelihood(fit)
+        n <- length(returns)
+        k <- length(coef(fit))
+        AIC <- as.numeric(info_criteria[1])  # Akaike
+        BIC <- as.numeric(info_criteria[2])  # Bayes
+        AICc <- AIC + (2 * k^2 + 2 * k) / (n - k - 1)
+        
+        # Controlla se l'Hessiano è invertito correttamente
+        hessian_ok <- all(!is.na(fit@fit$se.coef))
+        
+        model_results <- rbind(model_results, data.frame(
+          p = p,
+          q = q,
+          dist = dist,
+          converged = fit@fit$convergence == 0,
+          hessian_ok = hessian_ok,
+          AIC = AIC,
+          AICc = AICc,
+          BIC = BIC
+        ))
+      }, error = function(e) {
+        message(sprintf("Errore per GARCH(%d,%d) - %s: %s", p, q, dist, e$message))
+      })
+    }
   }
 }
 
-# Ranking (minore è meglio per AIC/BIC, maggiore è meglio per log-likelihood)
-model_results$rank_loglik <- rank(-model_results$loglik, ties.method = "min")
-model_results$rank_AIC <- rank(model_results$AIC, ties.method = "min")
-model_results$rank_BIC <- rank(model_results$BIC, ties.method = "min")
+# Ordina per AICc + BIC solo i modelli che:
+# - convergono
+# - hanno invertito l’Hessiano correttamente
+valid_models <- model_results %>% 
+  filter(converged == TRUE, hessian_ok == TRUE) %>%
+  arrange(AICc + BIC)
 
-# Somma dei ranghi: punteggio complessivo (basso è meglio)
-model_results$total_score <- model_results$rank_loglik + model_results$rank_AIC + model_results$rank_BIC
+# Stampa i modelli validi ordinati
+print(valid_models)
+#    p q dist converged hessian_ok       AIC      AICc       BIC
+# 1  1 0 norm      TRUE       TRUE  2.389406  2.419709  2.409401
+# 2  0 1 norm      TRUE       TRUE  2.391296  2.421599  2.411290
+# 3  0 1 sged      TRUE       TRUE  2.355142  2.456665  2.395132
+# 4  1 0 sstd      TRUE       TRUE  2.362812  2.464335  2.402801
+# 5  0 1 sstd      TRUE       TRUE  2.362941  2.464463  2.402930
+# 6  2 0 norm      TRUE       TRUE  2.393253  2.454013  2.423245
+# 7  0 2 norm      TRUE       TRUE  2.396194  2.456954  2.426186
+# 8  1 1 norm      TRUE       TRUE  2.396308  2.457068  2.426300
+# 9  1 1 sged      TRUE       TRUE  2.341727  2.494399  2.391714
+# 10 1 1 sstd      TRUE       TRUE  2.345818  2.498490  2.395805
+# 11 3 0 norm      TRUE       TRUE  2.386505  2.488028  2.426495
+# 12 0 2 sged      TRUE       TRUE  2.360257  2.512929  2.410244
+# 13 2 0 sstd      TRUE       TRUE  2.366280  2.518951  2.416267
+# 14 0 2 sstd      TRUE       TRUE  2.367983  2.520655  2.417970
+# 15 0 3 norm      TRUE       TRUE  2.401169  2.502692  2.441159
+# 16 1 2 norm      TRUE       TRUE  2.401207  2.502730  2.441196
+# 17 2 1 norm      TRUE       TRUE  2.401309  2.502832  2.441299
+# 18 2 1 sged      TRUE       TRUE  2.343742  2.558028  2.403727
+# 19 1 2 sged      TRUE       TRUE  2.346696  2.560982  2.406681
+# 20 2 1 sstd      TRUE       TRUE  2.347180  2.561466  2.407164
+# 21 1 2 sstd      TRUE       TRUE  2.350766  2.565051  2.410750
+# 22 3 0 sged      TRUE       TRUE  2.352739  2.567025  2.412723
+# 23 4 0 norm      TRUE       TRUE  2.390472  2.543144  2.440459
+# 24 3 0 sstd      TRUE       TRUE  2.357830  2.572116  2.417815
+# 25 0 3 sged      TRUE       TRUE  2.365141  2.579426  2.425125
+# 26 0 4 norm      TRUE       TRUE  2.406152  2.558824  2.456139
+# 27 1 3 norm      TRUE       TRUE  2.406182  2.558854  2.456169
+# 28 2 2 norm      TRUE       TRUE  2.406219  2.558891  2.456206
+# 29 3 1 norm      TRUE       TRUE  2.406309  2.558981  2.456296
+# 30 0 3 sstd      TRUE       TRUE  2.372897  2.587183  2.432881
+# 31 3 1 sged      TRUE       TRUE  2.342235  2.628680  2.412217
+# 32 3 1 sstd      TRUE       TRUE  2.344231  2.630676  2.414213
+# 33 2 2 sged      TRUE       TRUE  2.348755  2.635200  2.418736
+# 34 1 3 sged      TRUE       TRUE  2.351144  2.637589  2.421125
+# 35 2 2 sstd      TRUE       TRUE  2.352193  2.638638  2.422174
+# 36 4 0 sged      TRUE       TRUE  2.355521  2.641966  2.425503
+# 37 4 0 sstd      TRUE       TRUE  2.360832  2.647277  2.430814
+# 38 0 4 sged      TRUE       TRUE  2.370084  2.656529  2.440066
+# 39 1 4 norm      TRUE       TRUE  2.411165  2.625451  2.471149
+# 40 2 3 norm      TRUE       TRUE  2.411194  2.625480  2.471179
+# 41 3 2 norm      TRUE       TRUE  2.411228  2.625514  2.471213
+# 42 4 1 norm      TRUE       TRUE  2.411310  2.625595  2.471294
+# 43 0 4 sstd      TRUE       TRUE  2.377890  2.664335  2.447872
+# 44 1 3 sstd      TRUE       TRUE  2.377912  2.664357  2.447894
+# 45 4 1 sged      TRUE       TRUE  2.344798  2.714029  2.424777
+# 46 3 2 sged      TRUE       TRUE  2.347247  2.716478  2.427227
+# 47 4 1 sstd      TRUE       TRUE  2.347460  2.716691  2.427440
+# 48 3 2 sstd      TRUE       TRUE  2.349244  2.718475  2.429223
+# 49 2 3 sged      TRUE       TRUE  2.354023  2.723254  2.434003
+# 50 1 4 sged      TRUE       TRUE  2.356284  2.725514  2.436263
+# 51 2 3 sstd      TRUE       TRUE  2.357473  2.726704  2.437452
+# 52 3 3 norm      TRUE       TRUE  2.411619  2.698064  2.481601
+# 53 2 4 norm      TRUE       TRUE  2.416177  2.702622  2.486159
+# 54 4 2 norm      TRUE       TRUE  2.416219  2.702664  2.486201
+# 55 1 4 sstd      TRUE       TRUE  2.382903  2.752133  2.462882
+# 56 4 2 sged      TRUE       TRUE  2.349811  2.812536  2.439787
+# 57 3 3 sged      TRUE       TRUE  2.352260  2.814985  2.442237
+# 58 4 2 sstd      TRUE       TRUE  2.352473  2.815198  2.442449
+# 59 3 3 sstd      TRUE       TRUE  2.354256  2.816981  2.444233
+# 60 2 4 sged      TRUE       TRUE  2.358621  2.821346  2.448598
+# 61 3 4 norm      TRUE       TRUE  2.421190  2.790421  2.501169
+# 62 4 3 norm      TRUE       TRUE  2.421211  2.790442  2.501190
+# 63 2 4 sstd      TRUE       TRUE  2.387915  2.850640  2.477892
+# 64 4 3 sged      TRUE       TRUE  2.354823  2.921834  2.454797
+# 65 3 4 sged      TRUE       TRUE  2.357354  2.924365  2.457328
+# 66 4 3 sstd      TRUE       TRUE  2.357485  2.924496  2.457459
+# 67 3 4 sstd      TRUE       TRUE  2.359338  2.926348  2.459312
+# 68 4 4 norm      TRUE       TRUE  2.426203  2.888927  2.516179
+# 69 4 4 sstd      TRUE       TRUE  2.362498  3.044668  2.472469
+# 70 4 4 sged      TRUE       TRUE  2.390133  3.072304  2.500105
+# 71 2 0 sged      TRUE       TRUE 55.250591 55.403263 55.300578
 
-# Ordina per punteggio totale
-model_results <- model_results[order(model_results$total_score), ]
+# Analizziamo il primo modello: GARCH(1,0) norm
+p <- valid_models$p[1]
+q <- valid_models$q[1]
+dist <- valid_models$dist[1]
 
-# Stampa i primi 5 modelli migliori
-print(head(model_results, 5))
-#    p q    loglik      AIC      BIC rank_loglik rank_AIC rank_BIC total_score
-# 5  1 0 -474.6866 2.389406 2.409401           5        2        1           8
-# 15 3 0 -472.1077 2.386505 2.426495           2        1        6           9
-# 20 4 0 -471.8992 2.390472 2.440459           1        3        7          11
-# 10 2 0 -474.4540 2.393253 2.423245           4        5        3          12
-# 2  0 2 -475.0407 2.396194 2.426186          17        6        4          27
-
-# Estrai modello "ottimale" secondo il punteggio combinato
-best_p <- model_results$p[1]
-best_q <- model_results$q[1]
-
-# Stima finale
-best_spec <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(best_p, best_q)),
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-  distribution.model = "norm"
+  distribution.model = dist
 )
 
-best_fit <- ugarchfit(spec = best_spec, data = returns)
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
 
-# Verifica se la procedura di stima converge
-if (best_fit@fit$convergence == 0) {
-  cat("La stima è convergente.\n")
-} else {
-  cat("La stima NON è convergente.\n")
-  cat("Messaggio fitting:", best_fit@fit$message, "\n")
-}
-# La stima è convergente.
-
-# La procedura di stima converge, quindi selezioniamo questo modello.
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p, best_q))
-#
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
-
-# Mostra i risultati finali
-show(best_fit)
-#
+# Risultati
+show(fit)
+# 
 # *---------------------------------*
 # *          GARCH Model Fit        *
 # *---------------------------------*
@@ -1454,14 +1546,16 @@ show(best_fit)
 # 4    50     74.56     0.010759
 # 
 # 
-# Elapsed time : 0.05452299
+# Elapsed time : 0.08403993
 
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
 
-# Adesso, dopo aver stimato il modello GARCH migliore, possiamo estrarre facilmente i residui standardizzati, analizzarli e usarli
-# per verificare se il modello ha effettivamente catturato la dinamica della volatilità.
+# Applichiamo, ora, dei dest di normalità sui residui.
 
 # Estrai residui standardizzati
-z_hat <- residuals(best_fit, standardize = TRUE)
+z_hat <- residuals(fit, standardize = TRUE)
 
 # Prendi le date del training_set:
 # Rimuoviamo le righe con NA nella colonna usata per il modello
@@ -1488,9 +1582,6 @@ head(z_hat)
 # 2023-08-07  1.1120581
 # 2023-08-08 -0.5432201
 
-
-# Applichiamo, ora, dei dest di normalità sui residui.
-
 # Test di Shapiro-Wilk (SW).
 # Questo test è uno dei più potenti per la verifica della normalità, specialmente con campioni piccoli o medi. È molto sensibile a
 # deviazioni dalla normalità sia nelle code che nella parte centrale della distribuzione. Il test ha come:
@@ -1501,10 +1592,10 @@ shapirowilk_test <- function(x, name = "Serie", alpha = 0.01) {
   test <- shapiro.test(x)
   
   cat(sprintf("\n[%s] Shapiro-Wilk Test\n", name))
-    
+  
   cat(sprintf("Statistic: %f\n", test$statistic))
   cat(sprintf("p-value  : %g\n", test$p.value))
-    
+  
   if (test$p.value <= alpha) {
     cat(sprintf("\n** CONCLUSIONE: p-value <= %.2f **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON seguono una distribuzione normale.\n\n", alpha, alpha * 100))
   } else {
@@ -1514,7 +1605,7 @@ shapirowilk_test <- function(x, name = "Serie", alpha = 0.01) {
 
 # Esegue il test SW
 shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-#
+# 
 # [Residui standardizzati] Shapiro-Wilk Test
 # Statistic: 0.984416
 # p-value  : 0.000270527
@@ -1546,7 +1637,7 @@ jarque_bera_test <- function(x, name = "Serie", alpha = 0.01) {
 
 # Esegue il test JB
 jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-#
+# 
 # [Residui standardizzati] Jarque-Bera Test
 # Statistic: 23.916069
 # p-value  : 6.40754e-06
@@ -1555,278 +1646,888 @@ jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON seguono una distribuzione normale.
 
-# Visto che i residui standardizzati del GARCH con distribuzione normale non seguono una distribuzione normale, potrebbe servire un modello
-# con t-Student o GED.
+# Visto che i residui standardizzati del GARCH(1,0) con distribuzione normale non seguono una distribuzione normale,
+# questo modello è da scartare.
 
+# Analizziamo il prossimo nella classifica: GARCH(0,1) norm
+p <- valid_models$p[2]
+q <- valid_models$q[2]
+dist <- valid_models$dist[2]
 
-# Per catturare meglio la presenza di code pesanti e asimmetrie, stimiamo nuovamente diversi modelli GARCH ma assumendo per i residui:
-# - una distribuzione t-Student;
-# - una distribuzione GED (Generalized Error Distribution).
-
-# Modello con t-Student
-# Data frame per salvare i risultati con distribuzione t-Student
-model_results_t <- data.frame(
-  p = integer(),
-  q = integer(),
-  loglik = numeric(),
-  AIC = numeric(),
-  BIC = numeric(),
-  stringsAsFactors = FALSE
-)
-
-for (p in 0:4) {
-  for (q in 0:4) {
-    if (p == 0 && q == 0) next
-    
-    spec <- ugarchspec(
-      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-      distribution.model = "std"  # t-Student
-    )
-    
-    tryCatch({
-      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
-      model_results_t <- rbind(model_results_t, data.frame(
-        p = p,
-        q = q,
-        loglik = likelihood(fit),
-        AIC = infocriteria(fit)[1],
-        BIC = infocriteria(fit)[2]
-      ))
-    }, error = function(e) {
-      message(sprintf("Errore per GARCH(%d,%d) con t-Student: %s", p, q, e$message))
-    })
-  }
-}
-
-# Ranking e selezione analoga a prima
-model_results_t$rank_loglik <- rank(-model_results_t$loglik, ties.method = "min")
-model_results_t$rank_AIC <- rank(model_results_t$AIC, ties.method = "min")
-model_results_t$rank_BIC <- rank(model_results_t$BIC, ties.method = "min")
-model_results_t$total_score <- model_results_t$rank_loglik + model_results_t$rank_AIC + model_results_t$rank_BIC
-model_results_t <- model_results_t[order(model_results_t$total_score), ]
-
-# Stampa i primi 5 modelli migliori con t-Student
-print(head(model_results_t, 5))
-#    p q    loglik      AIC      BIC rank_loglik rank_AIC rank_BIC total_score
-# 16 3 1 -465.9035 2.365431 2.425416           2        1        7          10
-# 5  1 0 -470.7916 2.374895 2.404887           7        4        1          12
-# 15 3 0 -468.6915 2.374394 2.424381           4        3        6          13
-# 21 4 1 -465.4422 2.368131 2.438113           1        2       11          14
-# 10 2 0 -470.5455 2.378674 2.418664           6        7        3          16
-
-# Estrai modello "ottimale" secondo il punteggio combinato
-best_p_t <- model_results_t$p[1]
-best_q_t <- model_results_t$q[1]
-
-# Stima finale
-best_spec_t <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(best_p_t, best_q_t)),
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-  distribution.model = "std"
+  distribution.model = dist
 )
 
-best_fit_t <- ugarchfit(spec = best_spec_t, data = returns)
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
 
-# Verifica se la procedura di stima converge
-if (best_fit_t@fit$convergence == 0) {
-  cat("La stima è convergente.\n")
-} else {
-  cat("La stima NON è convergente.\n")
-  cat("Messaggio fitting:", best_fit_t@fit$message, "\n")
-}
-# La stima è convergente.
-
-# La procedura di stima converge, quindi selezioniamo questo modello.
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_t, best_q_t))
-#
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(3,1)
-
-# Mostra i risultati finali
-show(best_fit_t)
-#
+# Risultati
+show(fit)
+# 
 # *---------------------------------*
 # *          GARCH Model Fit        *
 # *---------------------------------*
 #   
 # Conditional Variance Dynamics 	
 # -----------------------------------
-# GARCH Model	    : sGARCH(3,1)
+# GARCH Model 	  : sGARCH(0,1)
 # Mean Model	    : ARFIMA(0,0,0)
-# Distribution	  : std 
+# Distribution	  : norm 
 # 
 # Optimal Parameters
 # ------------------------------------
-#         Estimate  Std. Error  t value Pr(>|t|)
-# omega   0.101170    0.052076 1.942733 0.052048
-# alpha1  0.000002    0.118059 0.000016 0.999987
-# alpha2  0.020757    0.110639 0.187608 0.851184
-# alpha3  0.104667    0.068155 1.535724 0.124606
-# beta1   0.722564    0.099777 7.241791 0.000000
-# shape   9.345211    4.178368 2.236569 0.025315
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.000798    0.000092    8.7141        0
+# beta1  0.999000    0.000142 7032.3749        0
 # 
 # Robust Standard Errors:
-#         Estimate  Std. Error   t value Pr(>|t|)
-# omega   0.101170    0.046896  2.157297 0.030983
-# alpha1  0.000002    0.283723  0.000007 0.999995
-# alpha2  0.020757    0.251221  0.082624 0.934151
-# alpha3  0.104667    0.066650  1.570399 0.116322
-# beta1   0.722564    0.061260 11.794967 0.000000
-# shape   9.345211    4.780982  1.954664 0.050623
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.000798    0.000099    8.0559        0
+# beta1  0.999000    0.000148 6772.8475        0
 # 
-# LogLikelihood : -465.9035 
+# LogLikelihood : -475.0635 
 # 
 # Information Criteria
 # ------------------------------------
 #   
-# Akaike       2.3654
-# Bayes        2.4254
-# Shibata      2.3650
-# Hannan-Quinn 2.3892
+# Akaike       2.3913
+# Bayes        2.4113
+# Shibata      2.3912
+# Hannan-Quinn 2.3992
 # 
 # Weighted Ljung-Box Test on Standardized Residuals
 # ------------------------------------
 #                         statistic p-value
-# Lag[1]                     0.2523  0.6155
-# Lag[2*(p+q)+(p+q)-1][2]    0.2837  0.8048
-# Lag[4*(p+q)+(p+q)-1][5]    0.7783  0.9075
+# Lag[1]                     0.7878  0.3748
+# Lag[2*(p+q)+(p+q)-1][2]    0.8376  0.5540
+# Lag[4*(p+q)+(p+q)-1][5]    1.3082  0.7869
 # d.o.f=0
 # H0 : No serial correlation
 # 
 # Weighted Ljung-Box Test on Standardized Squared Residuals
 # ------------------------------------
-#                          statistic p-value
-# Lag[1]                    0.001155  0.9729
-# Lag[2*(p+q)+(p+q)-1][11]  1.410836  0.9878
-# Lag[4*(p+q)+(p+q)-1][19]  3.102175  0.9941
-# d.o.f=4
+#                         statistic p-value
+# Lag[1]                     0.6610 0.41619
+# Lag[2*(p+q)+(p+q)-1][2]    0.9552 0.51301
+# Lag[4*(p+q)+(p+q)-1][5]    5.8924 0.09534
+# d.o.f=1
 # 
 # Weighted ARCH LM Tests
 # ------------------------------------
 #             Statistic Shape Scale P-Value
-# ARCH Lag[5]    0.1491 0.500 2.000  0.6994
-# ARCH Lag[7]    0.6365 1.473 1.746  0.8597
-# ARCH Lag[9]    1.6447 2.402 1.619  0.8259
+# ARCH Lag[2]    0.5824 0.500 2.000 0.44538
+# ARCH Lag[4]    6.1721 1.397 1.611 0.04544
+# ARCH Lag[6]    9.0003 2.222 1.500 0.02403
 # 
 # Nyblom stability test
 # ------------------------------------
-# Joint Statistic:  1.0057
-# Individual Statistics:              
-# omega  0.04730
-# alpha1 0.06709
-# alpha2 0.10946
-# alpha3 0.08071
-# beta1  0.04234
-# shape  0.30169
+# Joint Statistic:  1.1562
+# Individual Statistics:            
+# omega 0.1430
+# beta1 0.1384
 # 
 # Asymptotic Critical Values (10% 5% 1%)
-# Joint Statistic:     	   1.49 1.68 2.12
+# Joint Statistic:     	   0.61 0.749 1.07
 # Individual Statistic:	   0.35 0.47 0.75
 # 
 # Sign Bias Test
 # ------------------------------------
 #                    t-value    prob sig
-# Sign Bias          2.01387 0.04470  **
-# Negative Sign Bias 0.08586 0.93162    
-# Positive Sign Bias 0.34152 0.73289    
-# Joint Effect       7.56633 0.05588   *
+# Sign Bias           1.5725 0.11663    
+# Negative Sign Bias  0.7203 0.47180    
+# Positive Sign Bias  0.4206 0.67424    
+# Joint Effect        7.7482 0.05151   *
 #   
 #   
 # Adjusted Pearson Goodness-of-Fit Test:
 # ------------------------------------
 #   group statistic p-value(g-1)
-# 1    20     32.43      0.02795
-# 2    30     43.63      0.03976
-# 3    40     61.45      0.01239
-# 4    50     68.04      0.03717
+# 1    20     44.66    0.0007648
+# 2    30     62.28    0.0003189
+# 3    40     71.48    0.0011586
+# 4    50     88.34    0.0004864
 # 
 # 
-# Elapsed time : 0.1551561
+# Elapsed time : 0.06993294
 
-# Modello con GED
-# Data frame per salvare i risultati con distribuzione GED
-model_results_ged <- data.frame(
-  p = integer(),
-  q = integer(),
-  loglik = numeric(),
-  AIC = numeric(),
-  BIC = numeric(),
-  stringsAsFactors = FALSE
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, i dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.7586932
+# 2023-08-03 -0.3602748
+# 2023-08-04 -0.5689350
+# 2023-08-07  1.0906310
+# 2023-08-08 -0.5468688
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.983377
+# p-value  : 0.00015127
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 26.449214
+# p-value  : 1.80562e-06
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Visto che i residui standardizzati del GARCH(0,1) con distribuzione normale non seguono una distribuzione normale,
+# questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(0,1) sged
+p <- valid_models$p[3]
+q <- valid_models$q[3]
+dist <- valid_models$dist[3]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
 )
 
-for (p in 0:4) {
-  for (q in 0:4) {
-    if (p == 0 && q == 0) next
-    
-    spec <- ugarchspec(
-      variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-      mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-      distribution.model = "ged"  # GED
-    )
-    
-    tryCatch({
-      fit <- ugarchfit(spec, data = returns, solver = "hybrid")
-      model_results_ged <- rbind(model_results_ged, data.frame(
-        p = p,
-        q = q,
-        loglik = likelihood(fit),
-        AIC = infocriteria(fit)[1],
-        BIC = infocriteria(fit)[2]
-      ))
-    }, error = function(e) {
-      message(sprintf("Errore per GARCH(%d,%d) con GED: %s", p, q, e$message))
-    })
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(0,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#        Estimate  Std. Error  t value Pr(>|t|)
+# omega  0.000795    0.000118    6.751        0
+# beta1  0.999000    0.000216 4616.366        0
+# skew   0.888516    0.044940   19.771        0
+# shape  1.367556    0.135935   10.060        0
+# 
+# Robust Standard Errors:
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.000795    0.000186    4.2728  1.9e-05
+# beta1  0.999000    0.000172 5808.6056  0.0e+00
+# skew   0.888516    0.036383   24.4209  0.0e+00
+# shape  1.367556    0.152439    8.9712  0.0e+00
+# 
+# LogLikelihood : -465.8509 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3551
+# Bayes        2.3951
+# Shibata      2.3549
+# Hannan-Quinn 2.3710
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.7873  0.3749
+# Lag[2*(p+q)+(p+q)-1][2]    0.8372  0.5542
+# Lag[4*(p+q)+(p+q)-1][5]    1.3081  0.7869
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.6621 0.41584
+# Lag[2*(p+q)+(p+q)-1][2]    0.9568 0.51247
+# Lag[4*(p+q)+(p+q)-1][5]    5.8962 0.09515
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[2]    0.5835 0.500 2.000 0.44493
+# ARCH Lag[4]    6.1753 1.397 1.611 0.04536
+# ARCH Lag[6]    9.0042 2.222 1.500 0.02398
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.2203
+# Individual Statistics:            
+# omega 0.1166
+# beta1 0.1138
+# skew  0.1638
+# shape 0.2466
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           1.5722 0.11671    
+# Negative Sign Bias  0.7206 0.47156    
+# Positive Sign Bias  0.4206 0.67427    
+# Joint Effect        7.7476 0.05153   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     32.73     0.025826
+# 2    30     46.64     0.020251
+# 3    40     67.87     0.002833
+# 4    50     75.56     0.008768
+# 
+# 
+# Elapsed time : 0.250386
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, i dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.7586971
+# 2023-08-03 -0.3602764
+# 2023-08-04 -0.5689387
+# 2023-08-07  1.0906406
+# 2023-08-08 -0.5468748
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.983372
+# p-value  : 0.000150817
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 26.482109
+# p-value  : 1.77616e-06
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+#   Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(0,1) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Estrai i parametri SGED stimati
+pars <- coef(fit)
+
+# Individua i nomi rilevanti
+shape <- pars["shape"]
+skew  <- pars["skew"]
+
+# Calcola i quantili teorici SGED
+n <- length(z_hat)
+sged_quantiles <- qsged(ppoints(n), mean = 0, sd = 1, nu = shape, xi = skew)
+
+# Grafico
+qqplot(sged_quantiles, sort(z_hat),
+       main = "Q-Q Plot SGED dei residui standardizzati del modello GARCH(0,1) con distribuzione skewed GED per SPY",
+       xlab = "Quantili teorici SGED",
+       ylab = "Quantili empirici residui")
+abline(0, 1, col = "blue", lwd = 2)
+
+# Dal grafico vediamo che i punti risultano molto sparsi, disordinati e non seguono minimamente la retta di riferimento: questo è un segnale
+# chiaro che i residui standardizzati NON seguono affatto la distribuzione SGED. Perciò, anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,0) sstd
+p <- valid_models$p[4]
+q <- valid_models$q[4]
+dist <- valid_models$dist[4]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.64256    0.076113  8.44219 0.000000
+# alpha1   0.03439    0.065740  0.52312 0.600892
+# skew     0.84630    0.057393 14.74560 0.000000
+# shape    7.50665    3.105219  2.41743 0.015631
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.64256    0.080825   7.9500 0.000000
+# alpha1   0.03439    0.081706   0.4209 0.673831
+# skew     0.84630    0.047938  17.6539 0.000000
+# shape    7.50665    3.024080   2.4823 0.013054
+# 
+# LogLikelihood : -467.381 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3628
+# Bayes        2.4028
+# Shibata      2.3626
+# Hannan-Quinn 2.3786
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.6451  0.4219
+# Lag[2*(p+q)+(p+q)-1][2]    0.6763  0.6163
+# Lag[4*(p+q)+(p+q)-1][5]    1.1483  0.8253
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.02651  0.8707
+# Lag[2*(p+q)+(p+q)-1][2]   0.22872  0.8368
+# Lag[4*(p+q)+(p+q)-1][5]   4.53198  0.1948
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[2]    0.4004 0.500 2.000 0.52690
+# ARCH Lag[4]    5.2428 1.397 1.611 0.07682
+# ARCH Lag[6]    7.9466 2.222 1.500 0.04266
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.7367
+# Individual Statistics:              
+# omega  0.09929
+# alpha1 0.07004
+# skew   0.05973
+# shape  0.17895
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           1.6948 0.09089   *
+# Negative Sign Bias  0.1887 0.85040    
+# Positive Sign Bias  0.1550 0.87691    
+# Joint Effect        6.9133 0.07471   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     33.93      0.01872
+# 2    30     42.58      0.04977
+# 3    40     57.04      0.03106
+# 4    50     62.28      0.09641
+# 
+# 
+# Elapsed time : 0.2489622
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, i dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.7437296
+# 2023-08-03 -0.3406002
+# 2023-08-04 -0.5642355
+# 2023-08-07  1.0782306
+# 2023-08-08 -0.5330193
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.984016
+# p-value  : 0.000215894
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 25.384330
+# p-value  : 3.07512e-06
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,0) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Estrai i parametri stimati della distribuzione sstd dal fit corrente
+params <- coef(fit)
+skew  <- params["skew"]
+shape <- params["shape"]
+
+# Residui standardizzati
+z_hat_sorted <- sort(as.numeric(z_hat))
+n <- length(z_hat_sorted)
+
+# Calcola i quantili teorici della skewed Student-t
+probs <- ppoints(n)
+theoretical_q <- qdist("sstd", p = probs, skew = skew, shape = shape)
+
+# Calcola la regressione lineare per la linea ideale
+fit_line <- lm(z_hat_sorted ~ theoretical_q)
+intercept <- coef(fit_line)[1]
+slope <- coef(fit_line)[2]
+
+# Calcola z-score per banda di confidenza al 99%
+confidence_level <- 0.99
+alpha <- 1 - confidence_level
+z_score <- qnorm(1 - alpha / 2)
+
+# Approssimazione della deviazione standard dei residui
+se <- sd(z_hat_sorted)
+se_band <- se * z_score / sqrt(n)
+
+# Bande superiori e inferiori
+ci_upper <- slope * theoretical_q + intercept + se_band
+ci_lower <- slope * theoretical_q + intercept - se_band
+
+# Crea data frame per ggplot
+df_qq <- data.frame(
+  Theoretical = theoretical_q,
+  Observed = z_hat_sorted,
+  CI_upper = ci_upper,
+  CI_lower = ci_lower
+)
+
+# Q-Q Plot
+ggplot(df_qq, aes(x = Theoretical, y = Observed)) +
+  geom_point(aes(color = "Dati osservati"), size = 1.5) +
+  geom_abline(aes(slope = slope, intercept = intercept, linetype = "Linea ideale"), color = "red") +
+  geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = "Banda di confidenza al 99%"), alpha = 0.3) +
+  scale_color_manual(name = "", values = c("Dati osservati" = "black")) +
+  scale_linetype_manual(name = "", values = c("Linea ideale" = "dashed")) +
+  scale_fill_manual(name = "", values = c("Banda di confidenza al 99%" = "aquamarine")) +
+  labs(
+    title = "Q-Q Plot skewed Student-t dei residui standardizzati con bande di confidenza",
+    subtitle = "Modello GARCH(1,0) con distribuzione skewed Student-t per SPY",
+    x = "Quantili teorici (skewed Student-t)",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.direction = "vertical",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# Verifica quali residui stanno dentro le bande di confidenza
+df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
+
+# Conta quanti punti rientrano nelle bande
+n_inside <- sum(df_qq$inside_band)
+n_total <- nrow(df_qq)
+percentage_inside <- round(n_inside / n_total * 100, 2)
+
+# Output
+cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
+# Numero di punti all'interno delle bande di confidenza al 99%: 378 su 399
+cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
+# Percentuale di punti dentro le bande: 94.74 %
+
+# Dal Q-Q Plot vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,0) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level <- function(data, col, alpha = 0.01) {
+  x <- na.omit(data[[col]])
+  
+  # Valori critici per null = "Level"
+  critical_values <- c(`10%` = 0.347, `5%` = 0.463, `2.5%` = 0.574, `1%` = 0.739)
+  
+  # Funzione per trovare la soglia più vicina
+  get_critical <- function(cv, alpha) {
+    key <- names(cv)[which.min(abs(as.numeric(gsub("%", "", names(cv))) / 100 - alpha))]
+    value <- unname(cv[[key]])
+    return(c(value = as.numeric(value), level = key))
+  }
+  
+  # Funzione per stimare il p-value approssimato
+  estimate_pvalue <- function(stat, cv) {
+    if (stat > cv["1%"]) {
+      return("p-value < 0.01")
+    } else if (stat > cv["2.5%"]) {
+      return("p-value ≈ 0.025")
+    } else if (stat > cv["5%"]) {
+      return("p-value ≈ 0.05")
+    } else if (stat > cv["10%"]) {
+      return("p-value ≈ 0.10")
+    } else {
+      return("p-value > 0.10")
+    }
+  }
+  
+  cat(sprintf("\n[%s] KPSS Test - Stazionarietà attorno a una media costante\n", col))
+  
+  result <- kpss.test(x, null = "Level")
+  stat <- result$statistic
+  crit <- get_critical(critical_values, alpha)
+  
+  pvalue_msg <- estimate_pvalue(stat, critical_values)
+  
+  cat(sprintf("Statistic: %f\n", stat))
+  cat(sprintf("Valore critico (circa %s): %f\n", crit["level"], as.numeric(crit["value"])))
+  cat(sprintf("Interpretazione del p-value: %s\n", pvalue_msg))
+  
+  if (stat > crit["value"]) {
+    cat(sprintf("\n** CONCLUSIONE: Statistic > valore critico (%s) **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono stazionari.\n\n", crit["level"], alpha * 100))
+  } else {
+    cat(sprintf("\n** CONCLUSIONE: Statistic <= valore critico (%s) **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO stazionari.\n\n", crit["level"], alpha * 100))
   }
 }
 
-# Pulisci i risultati rimuovendo eventuali righe con NA o problemi
-#model_results_ged <- model_results_ged[complete.cases(model_results_ged), ]
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.103813
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
 
-# Ranking e selezione analoga a prima
-model_results_ged$rank_loglik <- rank(-model_results_ged$loglik, ties.method = "min")
-model_results_ged$rank_AIC <- rank(model_results_ged$AIC, ties.method = "min")
-model_results_ged$rank_BIC <- rank(model_results_ged$BIC, ties.method = "min")
-model_results_ged$total_score <- model_results_ged$rank_loglik + model_results_ged$rank_AIC + model_results_ged$rank_BIC
-model_results_ged <- model_results_ged[order(model_results_ged$total_score), ]
+# Quindi, i residui standardizzati sono stazionari.
 
-# Stampa i primi 5 modelli migliori con GED
-print(head(model_results_ged, 5))
-#    p q    loglik        AIC        BIC rank_loglik rank_AIC rank_BIC total_score
-# 5  1 0   -1.1000 0.02055138 0.05054357           1        1        1           3
-# 11 2 1 -465.7680 2.35973929 2.40972628           3        2        3           8
-# 21 4 1 -464.4644 2.36323024 2.43321202           2        3       10          15
-# 15 3 0 -467.1013 2.36642274 2.41640972           5        5        6          16
-# 20 4 0 -466.8799 2.37032546 2.43030984           4        6        9          19
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
 
-# Estrai modello "ottimale" secondo il punteggio combinato
-best_p_ged <- model_results_ged$p[1]
-best_q_ged <- model_results_ged$q[1]
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
 
-# Stima finale
-best_spec_ged <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(best_p_ged, best_q_ged)),
-  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-  distribution.model = "ged"
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
 )
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 3.612974
+# p-value: 0.0573305
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
 
-best_fit_ged <- ugarchfit(spec = best_spec_ged, data = returns)
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 3.613709
+# p-value: 0.16417
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
 
-# Verifica se la procedura di stima converge
-if (best_fit_ged@fit$convergence == 0) {
-  cat("La stima è convergente.\n")
-} else {
-  cat("La stima NON è convergente.\n")
-  cat("Messaggio fitting:", best_fit_ged@fit$message, "\n")
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità.
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+plot_acf_residuals <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)) {
+  
+  x <- data[[col]]
+  x <- na.omit(x)
+  n <- length(x)
+  
+  if (is.null(max_lag)) {
+    max_lag <- min(10, floor(n / 4))  # Hyndman
+  }
+  
+  # Calcolo ACF (escludendo lag 0, che è sempre 1)
+  acf_res <- acf(x, lag.max = max_lag, plot = FALSE)
+  acf_vals <- acf_res$acf[-1]
+  lags <- 1:length(acf_vals)
+  
+  # Calcolo intervalli di confidenza per i livelli dati
+  ci_vals <- sapply(ci_levels, function(level) qnorm((1 + level) / 2) / sqrt(n))
+  names(ci_vals) <- paste0(ci_levels * 100, "%")
+  
+  # Dataframe ACF
+  df <- data.frame(lag = lags, acf = acf_vals)
+  
+  # Dataframe intervalli di confidenza per ggplot (sia + che -)
+  ci_df <- do.call(rbind, lapply(names(ci_vals), function(name) {
+    data.frame(
+      ci_level = name,
+      y = c(ci_vals[name], -ci_vals[name])
+    )
+  }))
+  
+  ci_df$ci_level <- factor(ci_df$ci_level, levels = c("90%", "95%", "99%"))
+  
+  ci_colors <- c("90%" = "green", "95%" = "blue", "99%" = "red")
+  ci_linetypes <- c("90%" = "dotted", "95%" = "dashed", "99%" = "dotdash")
+  
+  p <- ggplot(df, aes(x = lag, y = acf)) +
+    geom_segment(aes(x = lag, xend = lag, y = 0, yend = acf), color = "black") +
+    geom_point(shape = 18, size = 3, color = "black") +
+    theme_minimal() +
+    geom_hline(data = ci_df, aes(yintercept = y, color = ci_level, linetype = ci_level), size = 1.1) +
+    scale_color_manual(name = "Confidence Interval", values = ci_colors) +
+    scale_linetype_manual(name = "Confidence Interval", values = ci_linetypes) +
+    labs(title = "ACF dei Residui Standardizzati", x = "Lag", y = "ACF Value") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5)
+    )
+  
+  print(p)
 }
-# La stima è convergente.
 
-# La procedura di stima converge, quindi selezioniamo questo modello.
-cat(sprintf("\nModello selezionato (compromesso tra loglik, AIC, BIC): GARCH(%d,%d)\n", best_p_ged, best_q_ged))
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)) {
+  
+  x <- data[[col]]
+  x <- na.omit(x)
+  n <- length(x)
+  
+  if (is.null(max_lag)) {
+    max_lag <- min(10, floor(n / 4))  # Hyndman
+  }
+  
+  # Calcolo PACF (rimuovo lag 0, che è sempre 1)
+  pacf_res <- pacf(x, lag.max = max_lag, plot = FALSE)
+  pacf_vals <- pacf_res$acf
+  lags <- 1:length(pacf_vals)
+  
+  # Intervalli di confidenza per i livelli dati
+  ci_vals <- sapply(ci_levels, function(level) qnorm((1 + level) / 2) / sqrt(n))
+  names(ci_vals) <- paste0(ci_levels * 100, "%")
+  
+  # Dataframe PACF
+  df <- data.frame(lag = lags, pacf = pacf_vals)
+  
+  # Dataframe intervalli di confidenza per ggplot (+ e -)
+  ci_df <- do.call(rbind, lapply(names(ci_vals), function(name) {
+    data.frame(
+      ci_level = name,
+      y = c(ci_vals[name], -ci_vals[name])
+    )
+  }))
+  ci_df$ci_level <- factor(ci_df$ci_level, levels = c("90%", "95%", "99%"))
+  
+  # Palette e linee
+  ci_colors <- c("90%" = "green", "95%" = "blue", "99%" = "red")
+  ci_linetypes <- c("90%" = "dotted", "95%" = "dashed", "99%" = "dotdash")
+  
+  p <- ggplot(df, aes(x = lag, y = pacf)) +
+    geom_segment(aes(x = lag, xend = lag, y = 0, yend = pacf), color = "black") +
+    geom_point(shape = 18, size = 3, color = "black") +
+    theme_minimal() +
+    geom_hline(data = ci_df, aes(yintercept = y, color = ci_level, linetype = ci_level), size = 1.1) +
+    scale_color_manual(name = "Confidence Interval", values = ci_colors) +
+    scale_linetype_manual(name = "Confidence Interval", values = ci_linetypes) +
+    labs(title = "PACF dei Residui Standardizzati", x = "Lag", y = "PACF Value") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5)
+    )
+  
+  print(p)
+}
+
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.6450903 0.4218735
+# X-squared1   2 0.7075932 0.7020177
+# X-squared2   3 0.8887092 0.8281517
+# X-squared3   4 0.9057814 0.9237299
+# X-squared4   5 2.5941968 0.7622468
+# X-squared5   6 2.6429612 0.8521375
+# X-squared6   7 3.6290162 0.8213773
+# X-squared7   8 3.6795752 0.8848149
+# X-squared8   9 3.7601410 0.9264784
+# X-squared9  10 5.3052993 0.8698732
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat arch_pvalue
+# statistic    1 0.1217198   0.7271767
+# statistic1   2 0.4671017   0.7917173
+# statistic2   3 6.0105983   0.1110957
+# statistic3   4 6.9040708   0.1410453
+# statistic4   5 7.9025084   0.1616911
+
+# Alla luce dei risultati, non possiamo rigettare l'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività del 10% per tutti i lag. Perciò, possiamo concludere che i residui standardizzati sono privi di eteroschedasticità
+# condizionata.
+
+# In conclusione, alla luce di tutti i risultati ottenuti dall’analisi dei residui standardizzati, possiamo concludere che
+# il modello GARCH(1,0) con distribuzione skewed Student-t ha catturato correttamente la dinamica della volatilità.
+
+best_p <- p
+best_q <- q 
+best_dist <- dist
+  
+cat(sprintf("\nModello migliore (secondo il criterio AICc + BIC): GARCH(%d,%d) con distribuzione %s\n", best_p, best_q, best_dist))
 #
-# Modello selezionato (compromesso tra loglik, AIC, BIC): GARCH(1,0)
-
-# Mostra i risultati finali
-show(best_fit_ged)
-
-# AGGIUSTARE QUEST'ULTIMA PARTE (GARCH con GED)...
+# Modello migliore (secondo il criterio AICc + BIC): GARCH(1,0) con distribuzione sstd
 ##################################################################################################################################################
