@@ -33,6 +33,11 @@ if (!require("fGarch")) {
   install.packages("fGarch")
   library(fGarch)
 }
+
+if (!require("rmgarch")) {
+  install.packages("rmgarch")
+  library(rmgarch)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -319,9 +324,9 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
     rename(AdjClose = all_of(adj_col)) %>%
     arrange(Index)
   
-  # Calcolo split_index (80% training)
+  # Calcolo split_index (95% training)
   total_len <- nrow(df)
-  split_index <- floor(total_len * 0.8)
+  split_index <- floor(total_len * 0.95)
   split_day <- df$Date[split_index]
   
   train_df <- df[1:split_index, ]
@@ -420,8 +425,8 @@ for (ticker in tickers) {
 # Calcolo del numero totale di osservazioni
 total_rows <- nrow(merged_data)
 
-# Calcolo del limite per l'80% (training set)
-split_index <- floor(total_rows * 0.8)
+# Calcolo del limite per il 95% (training set)
+split_index <- floor(total_rows * 0.95)
 
 # Estrazione del training set
 training_set <- merged_data %>%
@@ -430,23 +435,23 @@ training_set <- merged_data %>%
 
 # Controlla la struttura finale
 glimpse(training_set)
-# Rows: 400
+# Rows: 475
 # Columns: 15
-# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33…
-# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, …
-# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 4…
-# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.…
-# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 1…
-# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, …
-# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 4…
-# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573…
-# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 1…
-# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2…
-# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 1…
-# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54…
-# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101…
-# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.54091033…
-# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0…
+# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 3…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, 202…
+# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 428.…
+# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.550…
+# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 175.…
+# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, -1.…
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 486.…
+# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573141…
+# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 143.…
+# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2069…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 134.…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54853…
+# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101.78…
+# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.540910338, …
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.02…
 
 # Salva il training set
 write_csv(training_set, file.path(data_folder, "training_set_with_log_returns_and_rf.csv"))
@@ -517,10 +522,9 @@ for (col in risky_logreturn_cols) {
 # - per la linea di confidenza del 95%: ⌊(maxlag × 0.05)⌋ = ⌊(10 × 0.05)⌋ = 0
 # - per la linea di confidenza del 99%: ⌊(maxlag × 0.01)⌋ = ⌊(10 × 0.01)⌋ = 0
 
-# Questa viene sempre rispettata da SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn e XOM_LogReturn, per cui possiamo assumere l’assenza di
-# autocorrelazione con significatività α = 0.10, α = 0.05 e α = 0.01 per queste serie storiche. Per la serie UNH_LogReturn la tolleranza
-# rigorosa viene rispettata con significatività α = 0.05. Per la serie AMZN_LogReturn, invece, la tolleranza rigorosa viene rispettata solo
-# con significatività α = 0.01.
+# Questa viene sempre rispettata da JPM_LogReturn e AMZN_LogReturn; per cui possiamo assumere l’assenza di autocorrelazione
+# con significatività α = 0.10, α = 0.05 e α = 0.01 per queste serie storiche. Per tutte le altre serie, invece, la tolleranza
+# rigorosa viene rispettata con significatività α = 0.01.
 #
 # Per ora, quindi, possiamo assumere l'assenza di autocorrelazione per tutte le serie storiche con un livello di significatività α = 0.01.
 #
@@ -631,91 +635,100 @@ for (col in risky_logreturn_cols) {
   ljungbox_test(training_set[[col]], col_name = col)
 }
 # Ljung-Box test per SPY_LogReturn (max_lag = 10):
-#            lag   lb_stat lb_pvalue
-# X-squared    1 0.7603370 0.3832231
-# X-squared1   2 0.8638688 0.6492520
-# X-squared2   3 1.0758307 0.7829116
-# X-squared3   4 1.0897241 0.8958991
-# X-squared4   5 2.7215923 0.7428141
-# X-squared5   6 2.7531034 0.8391355
-# X-squared6   7 3.7957194 0.8029830
-# X-squared7   8 3.8413651 0.8711448
-# X-squared8   9 3.9453148 0.9149747
-# X-squared9  10 5.4709378 0.8575848
+#            lag   lb_stat   lb_pvalue
+# X-squared    1  2.151799 0.142402974
+# X-squared1   2  5.359999 0.068563197
+# X-squared2   3 11.537234 0.009148828
+# X-squared3   4 13.431263 0.009349960
+# X-squared4   5 13.431468 0.019654094
+# X-squared5   6 14.167211 0.027823087
+# X-squared6   7 14.362075 0.045103743
+# X-squared7   8 14.641084 0.066511746
+# X-squared8   9 14.719625 0.098930951
+# X-squared9  10 14.899972 0.135751491
 # 
 # Ljung-Box test per AAPL_LogReturn (max_lag = 10):
-#            lag  lb_stat lb_pvalue
-# X-squared    1 2.545114 0.1106359
-# X-squared1   2 2.620594 0.2697399
-# X-squared2   3 3.004504 0.3909312
-# X-squared3   4 3.959769 0.4114780
-# X-squared4   5 5.280014 0.3826712
-# X-squared5   6 5.598484 0.4696343
-# X-squared6   7 5.624032 0.5842684
-# X-squared7   8 5.878393 0.6608515
-# X-squared8   9 6.088558 0.7310233
-# X-squared9  10 7.232670 0.7033120
+#            lag   lb_stat  lb_pvalue
+# X-squared    1  0.626536 0.42862879
+# X-squared1   2  4.964292 0.08356372
+# X-squared2   3  7.676838 0.05318466
+# X-squared3   4  9.566887 0.04839087
+# X-squared4   5 12.968073 0.02367980
+# X-squared5   6 12.970345 0.04350930
+# X-squared6   7 13.913169 0.05274746
+# X-squared7   8 13.940614 0.08332647
+# X-squared8   9 14.335059 0.11089577
+# X-squared9  10 15.289106 0.12187167
 # 
 # Ljung-Box test per UNH_LogReturn (max_lag = 10):
-#            lag    lb_stat lb_pvalue
-# X-squared    1  0.3568924 0.5502372
-# X-squared1   2  0.8851608 0.6423767
-# X-squared2   3  4.4100307 0.2204571
-# X-squared3   4  4.6094922 0.3297612
-# X-squared4   5  5.2975760 0.3806530
-# X-squared5   6  5.4318134 0.4897360
-# X-squared6   7  7.3783980 0.3905719
-# X-squared7   8 10.8019104 0.2131778
-# X-squared8   9 11.3156052 0.2546946
-# X-squared9  10 11.4777440 0.3215273
+#            lag  lb_stat  lb_pvalue
+# X-squared    1 4.662199 0.03083367
+# X-squared1   2 5.115029 0.07749714
+# X-squared2   3 5.115069 0.16356259
+# X-squared3   4 5.744857 0.21902999
+# X-squared4   5 5.830190 0.32309448
+# X-squared5   6 5.834089 0.44202997
+# X-squared6   7 6.084154 0.52995827
+# X-squared7   8 6.496059 0.59184484
+# X-squared8   9 7.219119 0.61431763
+# X-squared9  10 7.300999 0.69675598
 # 
 # Ljung-Box test per JPM_LogReturn (max_lag = 10):
-#            lag    lb_stat lb_pvalue
-# X-squared    1  0.7464076 0.3876160
-# X-squared1   2  0.8242773 0.6622324
-# X-squared2   3  1.9054520 0.5922604
-# X-squared3   4  3.8655409 0.4245086
-# X-squared4   5  4.9624905 0.4204751
-# X-squared5   6  6.9821230 0.3225036
-# X-squared6   7  8.4629179 0.2935474
-# X-squared7   8  9.6994803 0.2867551
-# X-squared8   9 10.2648772 0.3294707
-# X-squared9  10 11.9328604 0.2895750
+#            lag      lb_stat lb_pvalue
+# X-squared    1 0.0006007107 0.9804463
+# X-squared1   2 1.7120331464 0.4248511
+# X-squared2   3 2.2020114559 0.5315523
+# X-squared3   4 4.0958341797 0.3931914
+# X-squared4   5 4.6500621622 0.4600600
+# X-squared5   6 6.0725623376 0.4151109
+# X-squared6   7 6.7365902699 0.4568116
+# X-squared7   8 8.4348048463 0.3921891
+# X-squared8   9 8.4397890389 0.4905039
+# X-squared9  10 8.6445328762 0.5661378
 # 
 # Ljung-Box test per AMZN_LogReturn (max_lag = 10):
-#            lag     lb_stat  lb_pvalue
-# X-squared    1  0.02628823 0.87119839
-# X-squared1   2  5.67353455 0.05861485
-# X-squared2   3  6.26852633 0.09925215
-# X-squared3   4  7.55877701 0.10914523
-# X-squared4   5  7.62915810 0.17789255
-# X-squared5   6  7.66596060 0.26361132
-# X-squared6   7  8.62855921 0.28043497
-# X-squared7   8  8.83068307 0.35678019
-# X-squared8   9 11.49368586 0.24337990
-# X-squared9  10 12.51747217 0.25191479
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.3734689 0.5411195
+# X-squared1   2 1.9200791 0.3828777
+# X-squared2   3 1.9831027 0.5759212
+# X-squared3   4 2.0122239 0.7335104
+# X-squared4   5 2.2019152 0.8205593
+# X-squared5   6 2.2323575 0.8971367
+# X-squared6   7 3.2988166 0.8560526
+# X-squared7   8 3.8789187 0.8678792
+# X-squared8   9 4.4710841 0.8777684
+# X-squared9  10 4.5023862 0.9218515
 # 
 # Ljung-Box test per XOM_LogReturn (max_lag = 10):
-#            lag    lb_stat lb_pvalue
-# X-squared    1 0.02959503 0.8634123
-# X-squared1   2 1.31590673 0.5179102
-# X-squared2   3 1.31745567 0.7249923
-# X-squared3   4 1.31752146 0.8583958
-# X-squared4   5 2.55017761 0.7689200
-# X-squared5   6 2.57036758 0.8605108
-# X-squared6   7 4.79470366 0.6849999
-# X-squared7   8 4.79776060 0.7789569
-# X-squared8   9 4.83864377 0.8481411
-# X-squared9  10 5.21272625 0.8765221
+#            lag     lb_stat lb_pvalue
+# X-squared    1  0.01160408 0.9142160
+# X-squared1   2  0.82284350 0.6627074
+# X-squared2   3  1.22021958 0.7481590
+# X-squared3   4  1.30738270 0.8601217
+# X-squared4   5  1.91841065 0.8603154
+# X-squared5   6  1.96407191 0.9229730
+# X-squared6   7  7.14305549 0.4141386
+# X-squared7   8  7.17297347 0.5180905
+# X-squared8   9 10.54229401 0.3083904
+# X-squared9  10 10.54875777 0.3937360
 
-# Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return, osserviamo che questi sono tutti maggiori di α = 0.01 (in realtà
-# anche di α = 0.05). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# autocorrelazione fino al lag specificato.
+# Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return fino al lag 10, osserviamo che:
+# 
+# - Per **SPY_LogReturn** e **AAPL_LogReturn**, alcuni p-value (in particolare ai lag 3-6) sono inferiori a 0.05 e anche a 0.01,
+#   il che indica **presenza di autocorrelazione significativa** a quei lag. Possiamo quindi **rifiutare l’ipotesi nulla**
+#   di assenza di autocorrelazione per questi casi.
 #
-# Ovviamente, sottolineiamo ancora come il test non conferma la scorrelazione, ma piuttosto che non c'è evidenza sufficiente per dimostrare
-# il contrario (come detto più volte a lezione: l'assenza di prove a un processo non implica necessariamente innocenza).
+# - Per **UNH_LogReturn**, il primo lag è significativo al livello del 5% (p = 0.0308), ma i successivi non lo sono.
+#   Questo suggerisce una **debole autocorrelazione iniziale**, che però **non persiste**.
 #
-# Dunque, non possiamo rifiutare l'ipotesi nulla: i dati non sono autocorrelati.
+# - Per **JPM_LogReturn**, **AMZN_LogReturn** e **XOM_LogReturn**, tutti i p-value sono ben superiori a 0.05 (in realtà anche a 0.10),
+#   dunque **non c'è evidenza statistica sufficiente** per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+#
+# Concludendo:
+# - **Non possiamo dire che tutte le serie siano prive di autocorrelazione**.
+# - In particolare, **SPY** e **AAPL** mostrano **autocorrelazione statisticamente significativa**.
+# - Per le altre serie, l’evidenza di autocorrelazione è **assente o debole**, ma ricordiamo che:
+#   *non possiamo confermare la totale assenza di autocorrelazione — possiamo solo dire che non ne abbiamo trovato evidenza con questo test.*
 ##################################################################################################################################################
 
 ################################################### Analisi di Cross-Correlazione sui Rendimenti Logaritmici #####################################
@@ -1064,6 +1077,8 @@ kpss_test_all(training_set, "SPY_AdjClose")
 # Stazionarietà dei rendimenti logaritmici:
 # ADF Test
 adf_test_all(training_set, "SPY_LogReturn")
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
 #
 # [SPY_LogReturn] ADF Test - Senza Intercetta
 # Statistic: -18.976249
@@ -2249,7 +2264,500 @@ cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "
 cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
 # Percentuale di punti dentro le bande: 94.74 %
 
+# Asymptotic one-sample Kolmogorov-Smirnov test
+stats::ks.test(x=z_hat, y="psstd", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  z_hat
+# D = 0.96918, p-value < 2.2e-16
+# alternative hypothesis: two-sided
+
 # Dal Q-Q Plot vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t.
+
+
+
+
+
+# Analizziamo il prossimo nella classifica: GARCH(1,1) sged
+p <- valid_models$p[9]
+q <- valid_models$q[9]
+dist <- valid_models$dist[9]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.070622    0.033960   2.0796 0.037563
+# alpha1  0.071459    0.034632   2.0634 0.039077
+# beta1   0.822016    0.066000  12.4548 0.000000
+# skew    0.856352    0.051399  16.6607 0.000000
+# shape   1.466952    0.164495   8.9179 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.070622    0.018127   3.8960 0.000098
+# alpha1  0.071459    0.031838   2.2445 0.024802
+# beta1   0.822016    0.030820  26.6716 0.000000
+# skew    0.856352    0.052738  16.2378 0.000000
+# shape   1.466952    0.199269   7.3617 0.000000
+# 
+# LogLikelihood : -462.1746 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3417
+# Bayes        2.3917
+# Shibata      2.3414
+# Hannan-Quinn 2.3615
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.2626  0.6083
+# Lag[2*(p+q)+(p+q)-1][2]    0.2809  0.8065
+# Lag[4*(p+q)+(p+q)-1][5]    0.7358  0.9159
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.5784  0.4470
+# Lag[2*(p+q)+(p+q)-1][5]    1.2069  0.8113
+# Lag[4*(p+q)+(p+q)-1][9]    2.0113  0.9037
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[3]   0.02788 0.500 2.000  0.8674
+# ARCH Lag[5]   0.45428 1.440 1.667  0.8970
+# ARCH Lag[7]   0.89512 2.315 1.543  0.9300
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.9326
+# Individual Statistics:              
+# omega  0.05294
+# alpha1 0.07384
+# beta1  0.04710
+# skew   0.24851
+# shape  0.28098
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           1.9846 0.04788  **
+# Negative Sign Bias  0.6899 0.49066    
+# Positive Sign Bias  0.1336 0.89382    
+# Joint Effect        7.0881 0.06914   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     39.85     0.003427
+# 2    30     33.86     0.244528
+# 3    40     66.26     0.004156
+# 4    50     68.79     0.032486
+# 
+# 
+# Elapsed time : 0.3208668
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, i dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.8116734
+# 2023-08-03 -0.3424681
+# 2023-08-04 -0.5605840
+# 2023-08-07  1.1012406
+# 2023-08-08 -0.5462619
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.980928
+# p-value  : 4.07243e-05
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 37.951949
+# p-value  : 5.73904e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,1) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Estrai i parametri SGED stimati
+pars <- coef(fit)
+
+# Individua i nomi rilevanti
+shape <- pars["shape"]
+skew  <- pars["skew"]
+
+# Calcola i quantili teorici SGED
+n <- length(z_hat)
+sged_quantiles <- qsged(ppoints(n), mean = 0, sd = 1, nu = shape, xi = skew)
+
+# Grafico
+qqplot(sged_quantiles, sort(z_hat),
+       main = "Q-Q Plot SGED dei residui standardizzati del modello GARCH(1,1) con distribuzione skewed GED per SPY",
+       xlab = "Quantili teorici SGED",
+       ylab = "Quantili empirici residui")
+abline(0, 1, col = "blue", lwd = 2)
+
+# Verifica quali residui stanno dentro le bande di confidenza
+df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
+
+# Conta quanti punti rientrano nelle bande
+n_inside <- sum(df_qq$inside_band)
+n_total <- nrow(df_qq)
+percentage_inside <- round(n_inside / n_total * 100, 2)
+
+# Output
+cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
+# Numero di punti all'interno delle bande di confidenza al 99%: 378 su 399
+cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
+# Percentuale di punti dentro le bande: 94.74 %
+
+# Asymptotic one-sample Kolmogorov-Smirnov test
+stats::ks.test(x=z_hat, y="psged", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  z_hat
+# D = 0.96574, p-value < 2.2e-16
+# alternative hypothesis: two-sided
+
+# Analizziamo il prossimo nella classifica: GARCH(1,1) sstd
+p <- valid_models$p[10]
+q <- valid_models$q[10]
+dist <- valid_models$dist[10]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.063617    0.036698   1.7335 0.083001
+# alpha1  0.077741    0.036247   2.1448 0.031972
+# beta1   0.831371    0.069897  11.8942 0.000000
+# skew    0.814647    0.059038  13.7987 0.000000
+# shape   9.320806    4.447211   2.0959 0.036093
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.063617    0.024030   2.6475 0.008110
+# alpha1  0.077741    0.032863   2.3657 0.017998
+# beta1   0.831371    0.041246  20.1566 0.000000
+# skew    0.814647    0.055010  14.8090 0.000000
+# shape   9.320806    4.513771   2.0650 0.038926
+# 
+# LogLikelihood : -462.9908 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.3458
+# Bayes        2.3958
+# Shibata      2.3455
+# Hannan-Quinn 2.3656
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.2449  0.6207
+# Lag[2*(p+q)+(p+q)-1][2]    0.2713  0.8119
+# Lag[4*(p+q)+(p+q)-1][5]    0.7398  0.9152
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.6615  0.4160
+# Lag[2*(p+q)+(p+q)-1][5]    1.3489  0.7770
+# Lag[4*(p+q)+(p+q)-1][9]    2.0654  0.8971
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[3]  0.001476 0.500 2.000  0.9694
+# ARCH Lag[5]  0.425038 1.440 1.667  0.9055
+# ARCH Lag[7]  0.790184 2.315 1.543  0.9451
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.8852
+# Individual Statistics:              
+# omega  0.03252
+# alpha1 0.04276
+# beta1  0.02983
+# skew   0.11576
+# shape  0.31301
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           2.0043 0.04573  **
+# Negative Sign Bias  0.7683 0.44275    
+# Positive Sign Bias  0.1665 0.86786    
+# Joint Effect        7.1703 0.06666   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     35.44     0.012370
+# 2    30     34.91     0.207518
+# 3    40     65.26     0.005257
+# 4    50     83.58     0.001513
+# 
+# 
+# Elapsed time : 0.3861911
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, i dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.3598271
+# 2023-08-02 -1.8125156
+# 2023-08-03 -0.3399474
+# 2023-08-04 -0.5568603
+# 2023-08-07  1.0944984
+# 2023-08-08 -0.5420359
+
+# Esegue il test SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.980289
+# p-value  : 2.92863e-05
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Esegue il test JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 41.224097
+# p-value  : 1.11764e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,1) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Estrai i parametri stimati della distribuzione sstd dal fit corrente
+params <- coef(fit)
+skew  <- params["skew"]
+shape <- params["shape"]
+
+# Residui standardizzati
+z_hat_sorted <- sort(as.numeric(z_hat))
+n <- length(z_hat_sorted)
+
+# Calcola i quantili teorici della skewed Student-t
+probs <- ppoints(n)
+theoretical_q <- qdist("sstd", p = probs, skew = skew, shape = shape)
+
+# Calcola la regressione lineare per la linea ideale
+fit_line <- lm(z_hat_sorted ~ theoretical_q)
+intercept <- coef(fit_line)[1]
+slope <- coef(fit_line)[2]
+
+# Calcola z-score per banda di confidenza al 99%
+confidence_level <- 0.99
+alpha <- 1 - confidence_level
+z_score <- qnorm(1 - alpha / 2)
+
+# Approssimazione della deviazione standard dei residui
+se <- sd(z_hat_sorted)
+se_band <- se * z_score / sqrt(n)
+
+# Bande superiori e inferiori
+ci_upper <- slope * theoretical_q + intercept + se_band
+ci_lower <- slope * theoretical_q + intercept - se_band
+
+# Crea data frame per ggplot
+df_qq <- data.frame(
+  Theoretical = theoretical_q,
+  Observed = z_hat_sorted,
+  CI_upper = ci_upper,
+  CI_lower = ci_lower
+)
+
+# Q-Q Plot
+ggplot(df_qq, aes(x = Theoretical, y = Observed)) +
+  geom_point(aes(color = "Dati osservati"), size = 1.5) +
+  geom_abline(aes(slope = slope, intercept = intercept, linetype = "Linea ideale"), color = "red") +
+  geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = "Banda di confidenza al 99%"), alpha = 0.3) +
+  scale_color_manual(name = "", values = c("Dati osservati" = "black")) +
+  scale_linetype_manual(name = "", values = c("Linea ideale" = "dashed")) +
+  scale_fill_manual(name = "", values = c("Banda di confidenza al 99%" = "aquamarine")) +
+  labs(
+    title = "Q-Q Plot skewed Student-t dei residui standardizzati con bande di confidenza",
+    subtitle = "Modello GARCH(1,1) con distribuzione skewed Student-t per SPY",
+    x = "Quantili teorici (skewed Student-t)",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.direction = "vertical",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# Verifica quali residui stanno dentro le bande di confidenza
+df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
+
+# Conta quanti punti rientrano nelle bande
+n_inside <- sum(df_qq$inside_band)
+n_total <- nrow(df_qq)
+percentage_inside <- round(n_inside / n_total * 100, 2)
+
+# Output
+cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
+# Numero di punti all'interno delle bande di confidenza al 99%: 384 su 399 
+cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
+# Percentuale di punti dentro le bande: 96.24 %
+
+# Asymptotic one-sample Kolmogorov-Smirnov test
+stats::ks.test(x=z_hat, y="psstd", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  z_hat
+# D = 0.96564, p-value < 2.2e-16
+# alternative hypothesis: two-sided
+
+# RIFARE L'ANALISI
+
+
+
+
+
+
+
 
 # Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
 
