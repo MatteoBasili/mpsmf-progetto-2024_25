@@ -750,12 +750,12 @@ cov_matrix <- calculate_cov_matrix(training_set, risky_logreturn_cols)
 # Mostra la matrice
 print(round(cov_matrix, 4))
 #                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
-# SPY_LogReturn         0.6319         0.6072        0.1288        0.5024         0.9705        0.1548
-# AAPL_LogReturn        0.6072         2.0117       -0.0064        0.1332         0.8353       -0.0238
-# UNH_LogReturn         0.1288        -0.0064        2.6175        0.2437        -0.1203        0.2063
-# JPM_LogReturn         0.5024         0.1332        0.2437        1.8089         0.5487        0.4881
-# AMZN_LogReturn        0.9705         0.8353       -0.1203        0.5487         3.2796       -0.1341
-# XOM_LogReturn         0.1548        -0.0238        0.2063        0.4881        -0.1341        1.6489
+# SPY_LogReturn         1.1126         1.3101        0.1838        0.9832         1.5427        0.5055
+# AAPL_LogReturn        1.3101         3.0971       -0.0350        0.8771         1.7142        0.5621
+# UNH_LogReturn         0.1838        -0.0350        5.4032        0.2135        -0.0109        0.0114
+# JPM_LogReturn         0.9832         0.8771        0.2135        2.2095         1.1734        0.8042
+# AMZN_LogReturn        1.5427         1.7142       -0.0109        1.1734         3.9468        0.3016
+# XOM_LogReturn         0.5055         0.5621        0.0114        0.8042         0.3016        1.9743
 
 # Visualizza la matrice di varianza-covarianza con una heatmap
 ggcorrplot(cov_matrix, lab = TRUE, lab_size = 3, type = "lower",
@@ -791,50 +791,74 @@ risky_returns_df <- training_set %>%
 corr_returns <- cor(risky_returns_df, use = "pairwise.complete.obs")
 print(round(corr_returns, 4))
 #                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
-# SPY_LogReturn         1.0000         0.5385        0.1001        0.4699         0.6742        0.1517
-# AAPL_LogReturn        0.5385         1.0000       -0.0028        0.0698         0.3252       -0.0131
-# UNH_LogReturn         0.1001        -0.0028        1.0000        0.1120        -0.0411        0.0993
-# JPM_LogReturn         0.4699         0.0698        0.1120        1.0000         0.2253        0.2826
-# AMZN_LogReturn        0.6742         0.3252       -0.0411        0.2253         1.0000       -0.0577
-# XOM_LogReturn         0.1517        -0.0131        0.0993        0.2826        -0.0577        1.0000
+# SPY_LogReturn         1.0000         0.7058        0.0749        0.6271         0.7362        0.3411
+# AAPL_LogReturn        0.7058         1.0000       -0.0086        0.3353         0.4903        0.2273
+# UNH_LogReturn         0.0749        -0.0086        1.0000        0.0618        -0.0024        0.0035
+# JPM_LogReturn         0.6271         0.3353        0.0618        1.0000         0.3974        0.3850
+# AMZN_LogReturn        0.7362         0.4903       -0.0024        0.3974         1.0000        0.1080
+# XOM_LogReturn         0.3411         0.2273        0.0035        0.3850         0.1080        1.0000
 
 # Stampa la matrice di correlazione dei quadrati dei rendimenti
 corr_squared_returns <- cor(risky_returns_df^2, use = "pairwise.complete.obs")
 print(round(corr_squared_returns, 4))
 #                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
-# SPY_LogReturn         1.0000         0.2354        0.0921        0.3146         0.3617        0.0338
-# AAPL_LogReturn        0.2354         1.0000        0.0280        0.0004         0.1300       -0.0393
-# UNH_LogReturn         0.0921         0.0280        1.0000        0.1440         0.0250        0.0836
-# JPM_LogReturn         0.3146         0.0004        0.1440        1.0000         0.1597        0.0785
-# AMZN_LogReturn        0.3617         0.1300        0.0250        0.1597         1.0000       -0.0168
-# XOM_LogReturn         0.0338        -0.0393        0.0836        0.0785        -0.0168        1.0000
+# SPY_LogReturn         1.0000         0.9026        0.0181        0.5372         0.6883        0.5489
+# AAPL_LogReturn        0.9026         1.0000        0.0173        0.4747         0.6798        0.4780
+# UNH_LogReturn         0.0181         0.0173        1.0000        0.0231         0.0048        0.0563
+# JPM_LogReturn         0.5372         0.4747        0.0231        1.0000         0.4279        0.4489
+# AMZN_LogReturn        0.6883         0.6798        0.0048        0.4279         1.0000        0.3339
+# XOM_LogReturn         0.5489         0.4780        0.0563        0.4489         0.3339        1.0000
 
 # Stampa la matrice di correlazione dei valori assoluti
 corr_abs_returns <- cor(abs(risky_returns_df), use = "pairwise.complete.obs")
 print(round(corr_abs_returns, 4))
 #                SPY_LogReturn AAPL_LogReturn UNH_LogReturn JPM_LogReturn AMZN_LogReturn XOM_LogReturn
-# SPY_LogReturn         1.0000         0.3263        0.0764        0.3183         0.4847        0.0304
-# AAPL_LogReturn        0.3263         1.0000        0.0178        0.0405         0.1775       -0.0160
-# UNH_LogReturn         0.0764         0.0178        1.0000        0.1707         0.0239        0.0373
-# JPM_LogReturn         0.3183         0.0405        0.1707        1.0000         0.1957        0.1218
-# AMZN_LogReturn        0.4847         0.1775        0.0239        0.1957         1.0000        0.0257
-# XOM_LogReturn         0.0304        -0.0160        0.0373        0.1218         0.0257        1.0000
+# SPY_LogReturn         1.0000         0.6584        0.0947        0.5642         0.6416        0.3643
+# AAPL_LogReturn        0.6584         1.0000        0.0733        0.3820         0.4535        0.2954
+# UNH_LogReturn         0.0947         0.0733        1.0000        0.1260         0.0494        0.1084
+# JPM_LogReturn         0.5642         0.3820        0.1260        1.0000         0.3902        0.3423
+# AMZN_LogReturn        0.6416         0.4535        0.0494        0.3902         1.0000        0.2272
+# XOM_LogReturn         0.3643         0.2954        0.1084        0.3423         0.2272        1.0000
 
 # Genera le heatmaps
 plot_corr_heatmap(risky_returns_df, "Matrice di Correlazione dei Rendimenti Logaritmici dei Titoli Rischiosi")
 plot_corr_heatmap(risky_returns_df^2, "Matrice di Correlazione dei Quadrati dei Rendimenti Logaritmici dei Titoli Rischiosi")
 plot_corr_heatmap(abs(risky_returns_df), "Matrice di Correlazione dei Valori Assoluti dei Rendimenti Logaritmici dei Titoli Rischiosi")
 
-# L’analisi della matrice di correlazione sui rendimenti logaritmici giornalieri mostra che solo alcune coppie di titoli presentano
-# correlazioni moderate o relativamente forti, come ad esempio SPY–AMZN e SPY–AAPL.
-#
-# La maggior parte delle correlazioni è debole o trascurabile, specialmente tra UNH e gli altri titoli, il che indica che non tutte le serie
-# si muovono in modo sincronizzato.
-#
-# Le correlazioni calcolate sui valori assoluti e sui quadrati dei rendimenti indicano una debole co-movimentazione della volatilità,
-# ma non suggeriscono una forte dipendenza in termini di direzione del movimento dei prezzi.
-#
-# Pertanto, non possiamo considerare l’ipotesi che le serie siano completamente indipendenti tra loro.
+# L’analisi della matrice di correlazione sui rendimenti logaritmici giornalieri mostra che alcune coppie di titoli
+# presentano correlazioni **moderate o forti**, in particolare:
+# - **SPY–AMZN**: 0.7362
+# - **SPY–AAPL**: 0.7058
+# - **SPY–JPM**: 0.6271
+# 
+# Al contrario, altre coppie mostrano correlazioni molto **basse o quasi nulle**, come:
+# - **UNH con tutti gli altri titoli**, ad esempio UNH–AAPL: –0.0086, UNH–SPY: 0.0749
+# 
+# Questo suggerisce che alcuni titoli (es. UNH) si muovono in modo **più indipendente**, mentre altri
+# (es. SPY, AAPL, AMZN) sono più **sincronizzati** nei loro rendimenti.
+
+# Le **correlazioni sui quadrati dei rendimenti** (proxy della **volatilità**) risultano **molto più elevate** per molte coppie:
+# - **SPY–AAPL**: 0.9026
+# - **SPY–AMZN**: 0.6883
+# - **SPY–XOM**: 0.5489
+# - Anche altri titoli (es. JPM, XOM) mostrano moderate correlazioni con SPY e AAPL.
+
+# Questo evidenzia una **comune dinamica della volatilità** tra molti titoli: pur muovendosi in direzioni diverse,
+# le serie tendono a mostrare **simultaneamente alti o bassi livelli di variabilità**.
+
+# Le **correlazioni sui valori assoluti** dei rendimenti confermano il quadro:
+# - Ancora SPY–AAPL: 0.6584
+# - SPY–AMZN: 0.6416
+# - SPY–JPM: 0.5642
+# 
+# Questi risultati rafforzano l’idea di una **co-movimentazione della volatilità**, pur senza necessariamente indicare
+# una forte correlazione direzionale.
+
+# In conclusione:
+# - Le serie **non sono indipendenti**, soprattutto in termini di volatilità.
+# - Alcune coppie di titoli mostrano **forte co-movimento**, specialmente SPY, AAPL e AMZN.
+# - L’uso dei quadrati o dei valori assoluti evidenzia **strutture di dipendenza latente**, anche in assenza
+#   di forti correlazioni nei rendimenti grezzi.
 
 
 # Likelihood Ratio Test.
@@ -886,7 +910,7 @@ log_return_training <- training_set %>%
 # Esegue il test
 lr_test(log_return_training, alpha = 0.01)
 # Likelihood Ratio Test
-# Statistic: 582.247179
+# Statistic: 1079.347437
 # p-value: 0
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
