@@ -38,6 +38,11 @@ if (!require("rmgarch")) {
   install.packages("rmgarch")
   library(rmgarch)
 }
+
+if (!require("moments")) {
+  install.packages("moments")
+  library(moments)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -922,7 +927,7 @@ lr_test(log_return_training, alpha = 0.01)
 ##################################################################################################################################################
 
 ################################################### Analisi della Volatilità dell’S&P 500 tramite Modello GARCH ##################################
-# Quello che vogliamo fare adesso è applicare un modello GARCH(1,1) alla serie storica dell’S&P 500 al fine di stimare la volatilità condizionata.
+# Quello che vogliamo fare adesso è applicare un modello GARCH alla serie storica dell’S&P 500 al fine di stimare la volatilità condizionata.
 #
 # Prima di applicare un modello GARCH, occorre verificare la presenza di una unit root, che indicherebbe un comportamento simile a un
 # random walk, in cui la conoscenza del passato oltre lo stato presente non migliora la previsione.
@@ -968,10 +973,10 @@ adf_test_all <- function(data, col, alpha = 0.01) {
 
 # Esegue il test ADF
 adf_test_all(training_set, "SPY_AdjClose")
-#
+# 
 # [SPY_AdjClose] ADF Test - Senza Intercetta
-# Statistic: 1.457150
-# p-value  : 0.964231
+# Statistic: 1.201244
+# p-value  : 0.94142
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -979,8 +984,8 @@ adf_test_all(training_set, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] ADF Test - Con Intercetta (Drift)
-# Statistic: -0.808345
-# p-value  : 0.815276
+# Statistic: -1.005416
+# p-value  : 0.752652
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -988,8 +993,8 @@ adf_test_all(training_set, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] ADF Test - Con Intercetta e Trend
-# Statistic: -2.934036
-# p-value  : 0.152864
+# Statistic: -2.453081
+# p-value  : 0.351598
 # 
 # ** CONCLUSIONE: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1068,9 +1073,9 @@ kpss_test_all <- function(data, col, alpha = 0.01) {
 
 # Esegue il test KPSS
 kpss_test_all(training_set, "SPY_AdjClose")
-#
+# 
 # [SPY_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
-# Statistic: 6.563054
+# Statistic: 7.068768
 # Valore critico (circa 1%): 0.739000
 # Interpretazione del p-value: p-value < 0.01
 # 
@@ -1080,7 +1085,7 @@ kpss_test_all(training_set, "SPY_AdjClose")
 # 
 # 
 # [SPY_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
-# Statistic: 0.278260
+# Statistic: 1.048090
 # Valore critico (circa 1%): 0.216000
 # Interpretazione del p-value: p-value < 0.01
 # 
@@ -1100,13 +1105,13 @@ kpss_test_all(training_set, "SPY_AdjClose")
 
 # Stazionarietà dei rendimenti logaritmici:
 # ADF Test
-adf_test_all(training_set, "SPY_LogReturn")
 #result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
 #summary(result)
-#
+adf_test_all(training_set, "SPY_LogReturn")
+# 
 # [SPY_LogReturn] ADF Test - Senza Intercetta
-# Statistic: -18.976249
-# p-value  : 2.51358e-37
+# Statistic: -14.609955
+# p-value  : 2.41712e-30
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1114,8 +1119,8 @@ adf_test_all(training_set, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] ADF Test - Con Intercetta (Drift)
-# Statistic: -19.084201
-# p-value  : 1.85222e-34
+# Statistic: -14.679349
+# p-value  : 1.5244e-29
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1123,8 +1128,8 @@ adf_test_all(training_set, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] ADF Test - Con Intercetta e Trend
-# Statistic: -19.065190
-# p-value  : 2.33523e-40
+# Statistic: -14.665818
+# p-value  : 3.18746e-32
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -1133,9 +1138,9 @@ adf_test_all(training_set, "SPY_LogReturn")
 
 # KPSS Test
 kpss_test_all(training_set, "SPY_LogReturn")
-#
+# 
 # [SPY_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
-# Statistic: 0.102447
+# Statistic: 0.067189
 # Valore critico (circa 1%): 0.739000
 # Interpretazione del p-value: p-value > 0.10
 # 
@@ -1145,7 +1150,7 @@ kpss_test_all(training_set, "SPY_LogReturn")
 # 
 # 
 # [SPY_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
-# Statistic: 0.097492
+# Statistic: 0.061828
 # Valore critico (circa 1%): 0.216000
 # Interpretazione del p-value: p-value > 0.10
 # 
@@ -1157,17 +1162,26 @@ kpss_test_all(training_set, "SPY_LogReturn")
 # Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
 
 
-# Occorre anche controllare la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica:
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie SPY_LogReturn
+kurt_value <- kurtosis(training_set$SPY_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 22.6554
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
 
 # Test di Breusch-Pagan.
-# Il test di Breusch-Pagan verifica la presenza di eteroschedasticità (varianza non costante degli errori) in un modello di regressione.
-# Il test ha come:
+# Il test di Breusch-Pagan verifica la presenza di eteroschedasticità non condizionata (varianza non costante degli errori) in un modello di
+# regressione. Il test ha come:
 #
 # - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
 # - H_1: I dati NON sono omoschedastici (SONO eteroschedastici).
 breusch_pagan_test <- function(index, group, col, alpha = 0.01) {
   model <- lm(group ~ index)
-  bp <- lmtest::bptest(model)
+  bp <- lmtest::bptest(model, studentize = TRUE)
   
   cat(sprintf("[%s] Breusch-Pagan Test\n", col))
   
@@ -1191,16 +1205,15 @@ group_clean <- training_set$SPY_LogReturn[valid_rows]
 # Esegue il test di Breusch-Pagan
 breusch_pagan_test(index_clean, group_clean, "SPY_LogReturn")
 # [SPY_LogReturn] Breusch-Pagan Test
-# Statistic: 1.873334
-# p-value: 0.171094
+# Statistic: 8.847582
+# p-value: 0.00293477
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
-
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
 # Test di White.
-# Anche il test di White verifica la presenza di eteroschedasticità in un modello di regressione.
+# Anche il test di White verifica la presenza di eteroschedasticità non condizionata in un modello di regressione.
 # Il test ha come:
 #
 # - H_0: I dati SONO omoschedastici (NON sono eteroschedastici);
@@ -1227,14 +1240,14 @@ white_test <- function(index, group, col, alpha = 0.01) {
 # Esegue il test di White
 white_test(index_clean, group_clean, "SPY_LogReturn")
 # [SPY_LogReturn] White Test
-# Statistic: 2.572405
-# p-value: 0.276318
+# Statistic: 12.469880
+# p-value: 0.00195975
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
-# Alla luce dei risultati, non possiamo rifiutare l'ipotesi nulla di omoschedasticità: non c'è eteroschedasticità non condizionata.
+# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
 
 
 # Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
@@ -1244,22 +1257,28 @@ white_test(index_clean, group_clean, "SPY_LogReturn")
 # Test di Ljung-Box
 ljungbox_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
 # Ljung-Box test per SPY_LogReturn (max_lag = 10):
-#            lag   lb_stat lb_pvalue
-# X-squared    1 0.7603370 0.3832231
-# X-squared1   2 0.8638688 0.6492520
-# X-squared2   3 1.0758307 0.7829116
-# X-squared3   4 1.0897241 0.8958991
-# X-squared4   5 2.7215923 0.7428141
-# X-squared5   6 2.7531034 0.8391355
-# X-squared6   7 3.7957194 0.8029830
-# X-squared7   8 3.8413651 0.8711448
-# X-squared8   9 3.9453148 0.9149747
-# X-squared9  10 5.4709378 0.8575848
+#            lag   lb_stat   lb_pvalue
+# X-squared    1  2.151799 0.142402974
+# X-squared1   2  5.359999 0.068563197
+# X-squared2   3 11.537234 0.009148828
+# X-squared3   4 13.431263 0.009349960
+# X-squared4   5 13.431468 0.019654094
+# X-squared5   6 14.167211 0.027823087
+# X-squared6   7 14.362075 0.045103743
+# X-squared7   8 14.641084 0.066511746
+# X-squared8   9 14.719625 0.098930951
+# X-squared9  10 14.899972 0.135751491
 
-# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
-# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
-# L’assenza di forte autocorrelazione giustifica ulteriormente l’uso di un modello GARCH.
+# Osservando i p-value del test di Ljung-Box sui rendimenti logaritmici di SPY fino al lag 10,
+# notiamo che l’ipotesi nulla di assenza di autocorrelazione viene rifiutata per alcuni lag intermedi
+# (ad esempio, lag 3–7, dove p-value < 0.10). Ciò indica la presenza di autocorrelazione residua nei rendimenti.
 
+# Tuttavia, il test di Ljung-Box misura l'autocorrelazione nei rendimenti, non nella loro varianza.
+# Per valutare la presenza di autocorrelazione condizionata nella volatilità (cluster di volatilità),
+# occorre invece eseguire un test ARCH di Engle.
+
+# Se si osservano autocorrelazioni significative dal test ARCH di Engle, allora un modello GARCH
+# può essere appropriato per modellare la dinamica della varianza condizionata.
 
 # ACF
 plot_acf(training_set, "SPY_LogReturn")
@@ -1267,12 +1286,13 @@ plot_acf(training_set, "SPY_LogReturn")
 # PACF
 plot_pacf(training_set, "SPY_LogReturn")
 
-# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# L’analisi visiva di ACF e PACF mostra che solo una barra supera le bande di confidenza al 95%, ma non al 99%.
 # Dunque, non c'è una forte evidenza visiva di autocorrelazione.
 
 
-# Infine, è fondamentale verificare l'esistenza dell'eteroschedasticità condizionata, ovvero se la varianza cambia nel tempo in modo sistematico.
-# Se tale condizione non fosse presente, allora sarebbe inappropriato utilizzare un modello GARCH.
+# Infine, come dicevamo prima, è fondamentale verificare l'esistenza dell'eteroschedasticità condizionata, ovvero se
+# la varianza cambia nel tempo in modo sistematico. Se tale condizione non fosse presente, allora sarebbe inappropriato
+# utilizzare un modello GARCH.
 
 # Test ARCH di Engle.
 # Il test ARCH di Engle è un test LM (Lagrange Multiplier) che ha come:
@@ -1307,15 +1327,15 @@ arch_effects_test <- function(series, col_name = NULL) {
 # Esegue il test ARCH di Engle
 arch_effects_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
 # ARCH Test per SPY_LogReturn (max_lag = 5):
-#            lag arch_stat arch_pvalue
-# statistic    1  1.048248  0.30591092
-# statistic1   2  1.631908  0.44221733
-# statistic2   3  7.972773  0.04657777
-# statistic3   4  8.623328  0.07123587
-# statistic4   5  9.363585  0.09541163
+#            lag arch_stat  arch_pvalue
+# statistic    1  27.36938 1.680719e-07
+# statistic1   2  28.16878 7.642337e-07
+# statistic2   3  70.84084 2.819652e-15
+# statistic3   4  77.70128 5.343398e-16
+# statistic4   5  77.77460 2.450060e-15
 
 # Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
-# significatività del 5% al lag 3 e con un livello di significatività del 10% a partire dal lag 3.
+# significatività dell'1% per tutti i lag.
 # Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dell’S&P 500
 # presenti nel training set.
 
