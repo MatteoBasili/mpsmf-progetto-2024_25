@@ -1951,6 +1951,16 @@ kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
 
 # Quindi, i residui standardizzati sono stazionari.
 
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.0689
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
 # Breusch-Pagan Test:
 # Calcola i residui al quadrato
 df_residui$Residui_Sq <- df_residui$Residui^2
@@ -2348,7 +2358,7 @@ title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of
 subtitle_content <- bquote(paste("Sample size: ", .(n), 
                                  "; SGED parameters → mean = ", .(mean), 
                                  ", sd = ", .(sd), 
-                                 ", shape = ", .(round(SGED_beta, 3)), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
                                  ", skew = ", .(round(SGED_xi, 3)), "."))
 
 caption_content <- "Author: Matteo Basili"
@@ -2433,7 +2443,7 @@ cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\
 
 # Kolmogorov-Smirnov test (K-S test)
 ks_result <- ks.test(y, 
-                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
                      alternative = "two.sided")
 
 print(ks_result)
@@ -2441,7 +2451,7 @@ print(ks_result)
 #         Asymptotic one-sample Kolmogorov-Smirnov test
 # 
 # data:  y
-# D = 0.047905, p-value = 0.2268
+# D = 0.048248, p-value = 0.2198
 # alternative hypothesis: two-sided
 
 # Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
@@ -2484,6 +2494,16 @@ kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
 # → I dati SONO stazionari.
 
 # Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.8514
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
 
 # Breusch-Pagan Test:
 # Calcola i residui al quadrato
@@ -2570,73 +2590,10 @@ arch_effects_test(z_hat, col_name = "Residui Standardizzati")
 # condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# In conclusione, alla luce di tutti i risultati ottenuti dall’analisi dei residui standardizzati, possiamo concludere che
-# il modello GARCH(1,0) con distribuzione skewed Student-t ha catturato correttamente la dinamica della volatilità.
-
-best_p <- p
-best_q <- q
-best_dist <- dist
-
-cat(sprintf("\nModello migliore (secondo il criterio AICc + BIC): GARCH(%d,%d) con distribuzione %s\n", best_p, best_q, best_dist))
-#
-# Modello migliore (secondo il criterio AICc + BIC): GARCH(1,0) con distribuzione sstd
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Analizziamo il prossimo nella classifica: GARCH(1,1) sged
-p <- valid_models$p[2]
-q <- valid_models$q[2]
-dist <- valid_models$dist[2]
+# Analizziamo il prossimo nella classifica: GARCH(1,0) sstd
+p <- valid_models$p[3]
+q <- valid_models$q[3]
+dist <- valid_models$dist[3]
 
 spec <- ugarchspec(
   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
@@ -2658,94 +2615,91 @@ show(fit)
 #   
 # Conditional Variance Dynamics 	
 # -----------------------------------
-# GARCH Model	    : sGARCH(1,1)
+# GARCH Model	    : sGARCH(1,0)
 # Mean Model	    : ARFIMA(0,0,0)
-# Distribution	  : sged 
+# Distribution	  : sstd 
 # 
 # Optimal Parameters
 # ------------------------------------
 #         Estimate  Std. Error  t value Pr(>|t|)
-# omega   0.061486    0.021326   2.8832 0.003937
-# alpha1  0.114254    0.032876   3.4753 0.000510
-# beta1   0.818393    0.038093  21.4840 0.000000
-# skew    0.879638    0.044189  19.9062 0.000000
-# shape   1.219957    0.109453  11.1459 0.000000
+# omega    0.88077    0.161422   5.4563  0.00000
+# alpha1   0.18002    0.088723   2.0291  0.04245
+# skew     0.83637    0.047750  17.5157  0.00000
+# shape    3.67749    0.695796   5.2853  0.00000
 # 
 # Robust Standard Errors:
 #         Estimate  Std. Error  t value Pr(>|t|)
-# omega   0.061486    0.014927   4.1190 0.000038
-# alpha1  0.114254    0.037891   3.0153 0.002567
-# beta1   0.818393    0.025834  31.6785 0.000000
-# skew    0.879638    0.047178  18.6453 0.000000
-# shape   1.219957    0.150331   8.1151 0.000000
+# omega    0.88077     0.20097   4.3825 0.000012
+# alpha1   0.18002     0.10992   1.6377 0.101474
+# skew     0.83637     0.04180  20.0087 0.000000
+# shape    3.67749     0.94859   3.8768 0.000106
 # 
-# LogLikelihood : -598.9325 
+# LogLikelihood : -609.198 
 # 
 # Information Criteria
 # ------------------------------------
 #   
-# Akaike       2.5482
-# Bayes        2.5921
-# Shibata      2.5480
-# Hannan-Quinn 2.5655
+# Akaike       2.5873
+# Bayes        2.6224
+# Shibata      2.5872
+# Hannan-Quinn 2.6011
 # 
 # Weighted Ljung-Box Test on Standardized Residuals
 # ------------------------------------
 #                         statistic p-value
-# Lag[1]                   0.004364  0.9473
-# Lag[2*(p+q)+(p+q)-1][2]  0.050900  0.9556
-# Lag[4*(p+q)+(p+q)-1][5]  0.650584  0.9322
+# Lag[1]                     0.5933  0.4412
+# Lag[2*(p+q)+(p+q)-1][2]    1.3088  0.4081
+# Lag[4*(p+q)+(p+q)-1][5]    5.0364  0.1502
 # d.o.f=0
 # H0 : No serial correlation
 # 
 # Weighted Ljung-Box Test on Standardized Squared Residuals
 # ------------------------------------
 #                         statistic   p-value
-# Lag[1]                      1.293 2.556e-01
-# Lag[2*(p+q)+(p+q)-1][5]    14.877 4.795e-04
-# Lag[4*(p+q)+(p+q)-1][9]    23.251 2.854e-05
-# d.o.f=2
+# Lag[1]                     0.6070 4.359e-01
+# Lag[2*(p+q)+(p+q)-1][2]    0.6234 6.384e-01
+# Lag[4*(p+q)+(p+q)-1][5]   18.2302 5.924e-05
+# d.o.f=1
 # 
 # Weighted ARCH LM Tests
 # ------------------------------------
 #             Statistic Shape Scale   P-Value
-# ARCH Lag[3]    0.7102 0.500 2.000 3.994e-01
-# ARCH Lag[5]   23.4432 1.440 1.667 2.897e-06
-# ARCH Lag[7]   25.2295 2.315 1.543 2.865e-06
+# ARCH Lag[2]   0.03241 0.500 2.000 8.571e-01
+# ARCH Lag[4]  21.44632 1.397 1.611 5.355e-06
+# ARCH Lag[6]  28.76508 2.222 1.500 1.657e-07
 # 
 # Nyblom stability test
 # ------------------------------------
-# Joint Statistic:  0.9849
-# Individual Statistics:             
-# omega  0.1061
-# alpha1 0.1903
-# beta1  0.1113
-# skew   0.1672
-# shape  0.4236
+# Joint Statistic:  1.4943
+# Individual Statistics:              
+# omega  0.51851
+# alpha1 0.47092
+# skew   0.02673
+# shape  0.08955
 # 
 # Asymptotic Critical Values (10% 5% 1%)
-# Joint Statistic:     	   1.28 1.47 1.88
+# Joint Statistic:     	   1.07 1.24 1.6
 # Individual Statistic:	   0.35 0.47 0.75
 # 
 # Sign Bias Test
 # ------------------------------------
 #                    t-value   prob sig
-# Sign Bias           1.2090 0.2273    
-# Negative Sign Bias  0.7529 0.4519    
-# Positive Sign Bias  0.2116 0.8325    
-# Joint Effect        5.6189 0.1317    
+# Sign Bias          0.52841 0.5975    
+# Negative Sign Bias 1.46993 0.1423    
+# Positive Sign Bias 0.06128 0.9512    
+# Joint Effect       5.18144 0.1590    
 # 
 # 
 # Adjusted Pearson Goodness-of-Fit Test:
 # ------------------------------------
 #   group statistic p-value(g-1)
-# 1    20     19.25      0.44097
-# 2    30     39.16      0.09855
-# 3    40     45.16      0.23024
-# 4    50     70.09      0.02561
+# 1    20     35.96      0.01068
+# 2    30     49.42      0.01043
+# 3    40     62.20      0.01051
+# 4    50     58.70      0.16154
 # 
 # 
-# Elapsed time : 0.3166351
+# Elapsed time : 1.713458 
 
 # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
 # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
@@ -2775,125 +2729,7837 @@ if(length(z_hat) != length(valid_dates)) {
 head(z_hat)
 #                  [,1]
 # 2023-08-01 -0.2715260
-# 2023-08-02 -1.4132719
-# 2023-08-03 -0.2749317
-# 2023-08-04 -0.4619747
-# 2023-08-07  0.9301890
-# 2023-08-08 -0.4693765
+# 2023-08-02 -1.4802699
+# 2023-08-03 -0.2583579
+# 2023-08-04 -0.4789766
+# 2023-08-07  0.9071467
+# 2023-08-08 -0.4322148
 
-# Esegue il test SW
+# Test di SW
 shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
 # 
 # [Residui standardizzati] Shapiro-Wilk Test
-# Statistic: 0.964475
-# p-value  : 2.71107e-09
+# Statistic: 0.896255
+# p-value  : 2.16358e-17
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON seguono una distribuzione normale.
 
-# Esegue il test JB
+# Test di JB
 jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
 # 
 # [Residui standardizzati] Jarque-Bera Test
-# Statistic: 186.377436
+# Statistic: 3869.152601
 # p-value  : 0
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON seguono una distribuzione normale.
 
-# Come atteso, i residui standardizzati del GARCH(1,1) con distribuzione skewed GED non seguono una distribuzione normale.
+# Come atteso, i residui standardizzati del GARCH(1,0) con distribuzione skewed Student-t non seguono una distribuzione normale.
 
-# QQ-Plot SGED:
-# Estrai i parametri stimati della distribuzione SGED dal fit corrente
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
 params <- coef(fit)
-skew  <- params["skew"]
-shape <- params["shape"]
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
 
-# Residui standardizzati
-z_hat_sorted <- sort(as.numeric(z_hat))
-n <- length(z_hat_sorted)
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
 
-# Calcola i quantili teorici della skewed GED (SGED)
-probs <- ppoints(n)
-theoretical_q <- qdist("sged", p = probs, skew = skew, shape = shape)
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
 
-# Calcola la regressione lineare per la linea ideale
-fit_line <- lm(z_hat_sorted ~ theoretical_q)
-intercept <- coef(fit_line)[1]
-slope <- coef(fit_line)[2]
-
-# Calcola z-score per banda di confidenza al 99%
-confidence_level <- 0.99
-alpha <- 1 - confidence_level
-z_score <- qnorm(1 - alpha / 2)
-
-# Approssimazione della deviazione standard dei residui
-se <- sd(z_hat_sorted)
-se_band <- se * z_score / sqrt(n)
-
-# Bande superiori e inferiori
-ci_upper <- slope * theoretical_q + intercept + se_band
-ci_lower <- slope * theoretical_q + intercept - se_band
-
-# Crea data frame per ggplot
-df_qq <- data.frame(
-  Theoretical = theoretical_q,
-  Observed = z_hat_sorted,
-  CI_upper = ci_upper,
-  CI_lower = ci_lower
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
 )
 
-# Q-Q Plot
-ggplot(df_qq, aes(x = Theoretical, y = Observed)) +
-  geom_point(aes(color = "Dati osservati"), size = 1.5) +
-  geom_abline(aes(slope = slope, intercept = intercept, linetype = "Linea ideale"), color = "red") +
-  geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = "Banda di confidenza al 99%"), alpha = 0.3) +
-  scale_color_manual(name = "", values = c("Dati osservati" = "black")) +
-  scale_linetype_manual(name = "", values = c("Linea ideale" = "dashed")) +
-  scale_fill_manual(name = "", values = c("Banda di confidenza al 99%" = "aquamarine")) +
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,0) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.52%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 92.19%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.045013, p-value = 0.2921
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
   labs(
-    title = "Q-Q Plot skewed GED dei residui standardizzati con bande di confidenza",
-    subtitle = "Modello GARCH(1,1) con distribuzione skewed GED per SPY",
-    x = "Quantili teorici (skewed GED)",
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,0) con distribuzione skewed Student-t per SPY",
+    x = "Data",
     y = "Residui standardizzati"
   ) +
   theme_minimal() +
   theme(
-    legend.position = "right",
-    legend.direction = "vertical",
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5)
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
   )
 
-# Verifica quali residui stanno dentro le bande di confidenza
-df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.063325
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
 
-# Conta quanti punti rientrano nelle bande
-n_inside <- sum(df_qq$inside_band)
-n_total <- nrow(df_qq)
-percentage_inside <- round(n_inside / n_total * 100, 2)
+# Quindi, i residui standardizzati sono stazionari.
 
-# Output
-cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
-# Numero di punti all'interno delle bande di confidenza al 99%: 447 su 474
-cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
-# Percentuale di punti dentro le bande: 94.3 %
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 16.8930
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 2.638476
+# p-value: 0.104304
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 3.901062
+# p-value: 0.142199
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF mostra che una barra supera la banda di confidenza al 95%.
+# L’analisi visiva di PACF, invece, mostra che una barra supera la banda di confidenza al 99%.
+# Dunque, c’è un segnale potenzialmente significativo di autocorrelazione che merita almeno una verifica tramite test formale.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag    lb_stat  lb_pvalue
+# X-squared    1  0.5932583 0.44116189
+# X-squared1   2  2.0242521 0.36344546
+# X-squared2   3  2.9519753 0.39908906
+# X-squared3   4  9.5084081 0.04957477
+# X-squared4   5 10.1042915 0.07233355
+# X-squared5   6 11.1634724 0.08345362
+# X-squared6   7 11.3225461 0.12515543
+# X-squared7   8 11.3255868 0.18392456
+# X-squared8   9 11.3315604 0.25366495
+# X-squared9  10 11.3375194 0.33183373
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat  arch_pvalue
+# statistic    1  0.8259133 3.634569e-01
+# statistic1   2  0.8814328 6.435752e-01
+# statistic2   3  3.8319186 2.801952e-01
+# statistic3   4 43.6075369 7.740166e-09
+# statistic4   5 44.2688212 2.042675e-08
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,1) sstd
+p <- valid_models$p[4]
+q <- valid_models$q[4]
+dist <- valid_models$dist[4]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.089236    0.039112  2.28152 0.022518
+# alpha1  0.074277    0.058410  1.27165 0.203497
+# alpha2  0.045566    0.070128  0.64976 0.515847
+# beta1   0.790935    0.062380 12.67934 0.000000
+# skew    0.823081    0.050017 16.45610 0.000000
+# shape   4.808402    1.140284  4.21684 0.000025
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.089236    0.028648  3.11495 0.001840
+# alpha1  0.074277    0.059761  1.24290 0.213905
+# alpha2  0.045566    0.057659  0.79027 0.429369
+# beta1   0.790935    0.041904 18.87481 0.000000
+# skew    0.823081    0.044266 18.59392 0.000000
+# shape   4.808402    1.438651  3.34230 0.000831
+# 
+# LogLikelihood : -597.7414 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5474
+# Bayes        2.6001
+# Shibata      2.5471
+# Hannan-Quinn 2.5681
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.04076  0.8400
+# Lag[2*(p+q)+(p+q)-1][2]   0.12193  0.9045
+# Lag[4*(p+q)+(p+q)-1][5]   0.88149  0.8859
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       5.667 1.728e-02
+# Lag[2*(p+q)+(p+q)-1][8]     28.161 7.347e-07
+# Lag[4*(p+q)+(p+q)-1][14]    34.226 6.678e-07
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     29.39 0.500 2.000 5.916e-08
+# ARCH Lag[6]     29.51 1.461 1.711 1.394e-07
+# ARCH Lag[8]     29.95 2.368 1.583 3.004e-07
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.2512
+# Individual Statistics:              
+# omega  0.04153
+# alpha1 0.07002
+# alpha2 0.05070
+# beta1  0.03254
+# skew   0.05876
+# shape  0.30013
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          0.90213 0.36745    
+# Negative Sign Bias 1.66602 0.09638   *
+# Positive Sign Bias 0.08645 0.93115    
+# Joint Effect       8.00760 0.04585  **
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     20.18      0.38399
+# 2    30     32.84      0.28443
+# 3    40     37.73      0.52775
+# 4    50     67.56      0.04047
+# 
+# 
+# Elapsed time : 0.2402289
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2712218
+# 2023-08-04 -0.4381198
+# 2023-08-07  0.8893364
+# 2023-08-08 -0.4568722
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.962236
+# p-value  : 1.11409e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 205.575297
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(2,1) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(2,1) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.10%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 88.19%
 
 # Kolmogorov-Smirnov test (K-S test)
-stats::ks.test(x=z_hat, y="psged", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
 # 
 #         Asymptotic one-sample Kolmogorov-Smirnov test
 # 
-# data:  z_hat
-# D = 0.921, p-value < 2.2e-16
+# data:  y
+# D = 0.051286, p-value = 0.1652
 # alternative hypothesis: two-sided
 
-# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati non seguono la distribuzione skewed GED.
-# Perciò, anche questo modello è da scartare.
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
 
-# Analizziamo il prossimo nella classifica: GARCH(1,0) sstd
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(2,1) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.119361
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.0162
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.453817
+# p-value: 0.0110714
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.933881
+# p-value: 0.0189313
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag    lb_stat lb_pvalue
+# X-squared    1 0.04075727 0.8400072
+# X-squared1   2 0.20309578 0.9034379
+# X-squared2   3 1.10828250 0.7750750
+# X-squared3   4 1.52729995 0.8217949
+# X-squared4   5 1.52803559 0.9098120
+# X-squared5   6 2.23988349 0.8963678
+# X-squared6   7 2.58567467 0.9205087
+# X-squared7   8 2.64557244 0.9545968
+# X-squared8   9 3.21191601 0.9552970
+# X-squared9  10 3.23055025 0.9754659
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  6.551452 1.047986e-02
+# statistic1   2  9.512163 8.599238e-03
+# statistic2   3 13.354677 3.929126e-03
+# statistic3   4 37.313499 1.552346e-07
+# statistic4   5 37.637109 4.462574e-07
+
+# Alla luce dei risultati, a partire dal lag 2, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,2) sstd
+p <- valid_models$p[5]
+q <- valid_models$q[5]
+dist <- valid_models$dist[5]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.082262    0.021979  3.742813 0.000182
+# alpha1  0.107310    0.021306  5.036581 0.000000
+# beta1   0.809506    0.410314  1.972896 0.048507
+# beta2   0.000000    0.353102  0.000001 0.999999
+# skew    0.825262    0.049533 16.660938 0.000000
+# shape   4.798251    1.138592  4.214199 0.000025
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.082262    0.028978  2.838737 0.004529
+# alpha1  0.107310    0.041916  2.560131 0.010463
+# beta1   0.809506    0.211507  3.827319 0.000130
+# beta2   0.000000    0.179196  0.000002 0.999998
+# skew    0.825262    0.043347 19.038562 0.000000
+# shape   4.798251    1.426213  3.364330 0.000767
+# 
+# LogLikelihood : -597.9405 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5483
+# Bayes        2.6009
+# Shibata      2.5480
+# Hannan-Quinn 2.5690
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.008509  0.9265
+# Lag[2*(p+q)+(p+q)-1][2]  0.090130  0.9266
+# Lag[4*(p+q)+(p+q)-1][5]  0.855951  0.8913
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       2.331 1.268e-01
+# Lag[2*(p+q)+(p+q)-1][8]     27.998 8.146e-07
+# Lag[4*(p+q)+(p+q)-1][14]    35.107 3.928e-07
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     35.77 0.500 2.000 2.218e-09
+# ARCH Lag[6]     35.83 1.461 1.711 3.770e-09
+# ARCH Lag[8]     36.41 2.368 1.583 6.537e-09
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.3543
+# Individual Statistics:              
+# omega  0.04246
+# alpha1 0.06245
+# beta1  0.03300
+# beta2  0.03153
+# skew   0.05469
+# shape  0.28314
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias          1.05986 0.2898    
+# Negative Sign Bias 1.10898 0.2680    
+# Positive Sign Bias 0.09199 0.9267    
+# Joint Effect       6.14588 0.1047    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     18.24      0.50671
+# 2    30     33.72      0.24960
+# 3    40     36.21      0.59779
+# 4    50     69.46      0.02878
+# 
+# 
+# Elapsed time : 0.2134051
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2625936
+# 2023-08-04 -0.4406645
+# 2023-08-07  0.8865732
+# 2023-08-08 -0.4492422
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.962790
+# p-value  : 1.38353e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 208.952928
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,2) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,2) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 96.20%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 86.92%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.050259, p-value = 0.1823
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,2) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.115785
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.0805
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.024944
+# p-value: 0.0141051
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.437086
+# p-value: 0.0242693
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.008509299 0.9265027
+# X-squared1   2 0.171750455 0.9177087
+# X-squared2   3 0.952345492 0.8127807
+# X-squared3   4 1.566993301 0.8147118
+# X-squared4   5 1.580156852 0.9036385
+# X-squared5   6 2.309148523 0.8891858
+# X-squared6   7 2.635116981 0.9165837
+# X-squared7   8 2.708221393 0.9513139
+# X-squared8   9 3.189391255 0.9563102
+# X-squared9  10 3.230847017 0.9754575
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  2.927802 8.706594e-02
+# statistic1   2  5.003223 8.195284e-02
+# statistic2   3  7.378117 6.077424e-02
+# statistic3   4 39.514632 5.453533e-08
+# statistic4   5 39.652368 1.754873e-07
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(0,1) sstd
+p <- valid_models$p[6]
+q <- valid_models$q[6]
+dist <- valid_models$dist[6]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(0,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.002648    0.004562   0.58034  0.56169
+# beta1  0.999000    0.002897 344.81869  0.00000
+# skew   0.843118    0.045295  18.61395  0.00000
+# shape  2.864943    0.402735   7.11372  0.00000
+# 
+# Robust Standard Errors:
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.002648    0.008507   0.31124 0.755615
+# beta1  0.999000    0.005494 181.82110 0.000000
+# skew   0.843118    0.041012  20.55783 0.000000
+# shape  2.864943    0.805856   3.55515 0.000378
+# 
+# LogLikelihood : -613.7808 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6067
+# Bayes        2.6418
+# Shibata      2.6065
+# Hannan-Quinn 2.6205
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.498 0.22100
+# Lag[2*(p+q)+(p+q)-1][2]     2.877 0.15151
+# Lag[4*(p+q)+(p+q)-1][5]     7.369 0.04215
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                      24.47 7.551e-07
+# Lag[2*(p+q)+(p+q)-1][2]     24.52 2.907e-07
+# Lag[4*(p+q)+(p+q)-1][5]     58.93 2.220e-16
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[2]   0.09236 0.500 2.000 7.612e-01
+# ARCH Lag[4]  41.88649 1.397 1.611 2.130e-11
+# ARCH Lag[6]  51.13867 2.222 1.500 1.084e-13
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  5.2793
+# Individual Statistics:             
+# omega 0.49938
+# beta1 0.45550
+# skew  0.03879
+# shape 0.16915
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value      prob sig
+# Sign Bias           0.5045 6.141e-01    
+# Negative Sign Bias  4.0920 5.035e-05 ***
+# Positive Sign Bias  2.8599 4.426e-03 ***
+# Joint Effect       28.4277 2.954e-06 ***
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     30.05      0.05116
+# 2    30     47.27      0.01749
+# 3    40     54.44      0.05126
+# 4    50     69.04      0.03108
+# 
+# 
+# Elapsed time : 0.1750231
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01.
+# Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3263700
+# 2023-08-03 -0.2715603
+# 2023-08-04 -0.4286012
+# 2023-08-07  0.8211597
+# 2023-08-08 -0.4115216
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.872202
+# p-value  : 2.7006e-19
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 5333.421033
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(0,1) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(0,1) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 100.00%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 96.84%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.040294, p-value = 0.4249
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(0,1) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.074278
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 19.3757
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 2.899193
+# p-value: 0.0886239
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 4.318179
+# p-value: 0.11543
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, una barra supera la banda di confidenza al 95% ma non al 99%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat  lb_pvalue
+# X-squared    1  1.497880 0.22099791
+# X-squared1   2  4.256133 0.11906726
+# X-squared2   3  9.457450 0.02378835
+# X-squared3   4 10.817508 0.02869337
+# X-squared4   5 10.818378 0.05510233
+# X-squared5   6 11.366671 0.07768390
+# X-squared6   7 11.451600 0.12009758
+# X-squared7   8 11.619371 0.16901154
+# X-squared8   9 11.691881 0.23124209
+# X-squared9  10 11.814959 0.29763150
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  26.36112 2.831844e-07
+# statistic1   2  27.24766 1.211285e-06
+# statistic2   3  69.11736 6.595407e-15
+# statistic3   4  75.87009 1.304245e-15
+# statistic4   5  75.95247 5.885733e-15
+
+# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(0,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,1) sged
+p <- valid_models$p[7]
+q <- valid_models$q[7]
+dist <- valid_models$dist[7]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.067083    0.025943  2.58580 0.009715
+# alpha1  0.084058    0.050924  1.65066 0.098809
+# alpha2  0.042503    0.059037  0.71994 0.471562
+# beta1   0.800751    0.048321 16.57153 0.000000
+# skew    0.875266    0.045704 19.15096 0.000000
+# shape   1.223428    0.109691 11.15343 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.067083    0.020015   3.3517 0.000803
+# alpha1  0.084058    0.046551   1.8057 0.070962
+# alpha2  0.042503    0.036223   1.1734 0.240649
+# beta1   0.800751    0.034674  23.0939 0.000000
+# skew    0.875266    0.049594  17.6486 0.000000
+# shape   1.223428    0.151886   8.0549 0.000000
+# 
+# LogLikelihood : -598.7948 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5519
+# Bayes        2.6046
+# Shibata      2.5516
+# Hannan-Quinn 2.5726
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.02120  0.8842
+# Lag[2*(p+q)+(p+q)-1][2]   0.06918  0.9418
+# Lag[4*(p+q)+(p+q)-1][5]   0.66357  0.9298
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       3.286 6.986e-02
+# Lag[2*(p+q)+(p+q)-1][8]     21.401 4.945e-05
+# Lag[4*(p+q)+(p+q)-1][14]    26.520 6.054e-05
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     23.81 0.500 2.000 1.065e-06
+# ARCH Lag[6]     23.91 1.461 1.711 3.347e-06
+# ARCH Lag[8]     24.29 2.368 1.583 8.164e-06
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.0556
+# Individual Statistics:             
+# omega  0.1072
+# alpha1 0.2132
+# alpha2 0.1612
+# beta1  0.1170
+# skew   0.1867
+# shape  0.4383
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          1.07717 0.28196    
+# Negative Sign Bias 1.20612 0.22838    
+# Positive Sign Bias 0.06484 0.94833    
+# Joint Effect       6.70030 0.08209   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     18.07       0.5179
+# 2    30     37.14       0.1427
+# 3    40     42.46       0.3244
+# 4    50     59.97       0.1355
+# 
+# 
+# Elapsed time : 1.271469
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2702912
+# 2023-08-04 -0.4402184
+# 2023-08-07  0.8978582
+# 2023-08-08 -0.4620987
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964012
+# p-value  : 2.24942e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 185.936119
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(2,1) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(2,1) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 97.89%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 86.71%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.04935, p-value = 0.1986
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(2,1) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.127131
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.8196
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 5.899560
+# p-value: 0.0151447
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 6.906100
+# p-value: 0.031649
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag    lb_stat lb_pvalue
+# X-squared    1 0.02119613 0.8842459
+# X-squared1   2 0.11716084 0.9431024
+# X-squared2   3 0.86900038 0.8329015
+# X-squared3   4 1.14540021 0.8870037
+# X-squared4   5 1.16506746 0.9481844
+# X-squared5   6 1.89324981 0.9292498
+# X-squared6   7 2.31667076 0.9402582
+# X-squared7   8 2.36892468 0.9675631
+# X-squared8   9 2.90696980 0.9678692
+# X-squared9  10 2.94533726 0.9826813
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  3.933539 4.733224e-02
+# statistic1   2  6.786162 3.360499e-02
+# statistic2   3  8.553081 3.586269e-02
+# statistic3   4 29.149900 7.287966e-06
+# statistic4   5 29.270046 2.052365e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,1) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,2) sged
+p <- valid_models$p[8]
+q <- valid_models$q[8]
+dist <- valid_models$dist[8]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.061752    0.022056  2.799812 0.005113
+# alpha1  0.114417    0.033264  3.439632 0.000583
+# beta1   0.817963    0.062978 12.988092 0.000000
+# beta2   0.000000    0.057736  0.000007 0.999994
+# skew    0.879694    0.044369 19.826573 0.000000
+# shape   1.218571    0.109460 11.132545 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.061752    0.016181  3.81634 0.000135
+# alpha1  0.114417    0.039044  2.93049 0.003384
+# beta1   0.817963    0.013135 62.27141 0.000000
+# beta2   0.000000    0.019929  0.00002 0.999984
+# skew    0.879694    0.047569 18.49308 0.000000
+# shape   1.218571    0.150174  8.11440 0.000000
+# 
+# LogLikelihood : -598.9861 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5527
+# Bayes        2.6054
+# Shibata      2.5524
+# Hannan-Quinn 2.5734
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.004145  0.9487
+# Lag[2*(p+q)+(p+q)-1][2]  0.050061  0.9563
+# Lag[4*(p+q)+(p+q)-1][5]  0.647078  0.9328
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       1.305 2.534e-01
+# Lag[2*(p+q)+(p+q)-1][8]     21.849 3.758e-05
+# Lag[4*(p+q)+(p+q)-1][14]    27.727 3.044e-05
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     28.49 0.500 2.000 9.416e-08
+# ARCH Lag[6]     28.56 1.461 1.711 2.393e-07
+# ARCH Lag[8]     29.02 2.368 1.583 5.174e-07
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.1258
+# Individual Statistics:             
+# omega  0.1070
+# alpha1 0.1918
+# beta1  0.1132
+# beta2  0.1063
+# skew   0.1673
+# shape  0.4145
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.2003 0.2306    
+# Negative Sign Bias  0.7571 0.4494    
+# Positive Sign Bias  0.2120 0.8322    
+# Joint Effect        5.5873 0.1335    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     18.49      0.49000
+# 2    30     39.16      0.09855
+# 3    40     45.66      0.21482
+# 4    50     73.26      0.01396
+# 
+# 
+# Elapsed time : 0.2276711 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2622802
+# 2023-08-04 -0.4422318
+# 2023-08-07  0.8941551
+# 2023-08-08 -0.4541644
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964375
+# p-value  : 2.60291e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 187.828375
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,2) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,2) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 97.05%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 83.97%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.048605, p-value = 0.2127
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,2) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.124865
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.8642
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 5.626736
+# p-value: 0.0176885
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 6.601779
+# p-value: 0.0368504
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.004144538 0.9486692
+# X-squared1   2 0.095977404 0.9531446
+# X-squared2   3 0.760976227 0.8587764
+# X-squared3   4 1.164970622 0.8838316
+# X-squared4   5 1.209322634 0.9439799
+# X-squared5   6 1.950225937 0.9242189
+# X-squared6   7 2.366227099 0.9368291
+# X-squared7   8 2.428947811 0.9649619
+# X-squared8   9 2.895995764 0.9682759
+# X-squared9  10 2.963751734 0.9822643
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  1.734046 1.878951e-01
+# statistic1   2  3.915499 1.411758e-01
+# statistic2   3  5.015263 1.706829e-01
+# statistic3   4 31.135211 2.872993e-06
+# statistic4   5 31.146163 8.764900e-06
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,2) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,0) sstd
+p <- valid_models$p[9]
+q <- valid_models$q[9]
+dist <- valid_models$dist[9]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.826089    0.151817   5.4414  0.00000
+# alpha1  0.157245    0.086377   1.8205  0.06869
+# alpha2  0.061597    0.059908   1.0282  0.30386
+# skew    0.839869    0.048516  17.3113  0.00000
+# shape   3.722554    0.691524   5.3831  0.00000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.826089    0.185972   4.4420 0.000009
+# alpha1  0.157245    0.101989   1.5418 0.123126
+# alpha2  0.061597    0.042814   1.4387 0.150239
+# skew    0.839869    0.042816  19.6156 0.000000
+# shape   3.722554    0.949715   3.9197 0.000089
+# 
+# LogLikelihood : -607.987 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5864
+# Bayes        2.6303
+# Shibata      2.5862
+# Hannan-Quinn 2.6037
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.2126  0.6448
+# Lag[2*(p+q)+(p+q)-1][2]    0.6385  0.6320
+# Lag[4*(p+q)+(p+q)-1][5]    4.4007  0.2081
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                      0.143 7.053e-01
+# Lag[2*(p+q)+(p+q)-1][5]    17.208 1.125e-04
+# Lag[4*(p+q)+(p+q)-1][9]    29.155 7.424e-07
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]     2.103 0.500 2.000 1.470e-01
+# ARCH Lag[5]    33.227 1.440 1.667 9.454e-09
+# ARCH Lag[7]    35.831 2.315 1.543 4.608e-09
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.4885
+# Individual Statistics:              
+# omega  0.43161
+# alpha1 0.36424
+# alpha2 0.19864
+# skew   0.03008
+# shape  0.06065
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias          0.46396 0.6429    
+# Negative Sign Bias 1.56731 0.1177    
+# Positive Sign Bias 0.03951 0.9685    
+# Joint Effect       5.36655 0.1468    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     34.78     0.014858
+# 2    30     42.96     0.045898
+# 3    40     70.47     0.001492
+# 4    50     70.73     0.022752
+# 
+# 
+# Elapsed time : 0.2746429
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2688371
+# 2023-08-04 -0.4626533
+# 2023-08-07  0.9352313
+# 2023-08-08 -0.4453833
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.889124
+# p-value  : 5.49385e-18
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 4830.605842
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(2,0) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(2,0) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.31%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 92.62%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.045675, p-value = 0.2761
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(2,0) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.060021
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 18.5137
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 2.574137
+# p-value: 0.108623
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 3.811229
+# p-value: 0.148731
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF mostra che una barra supera la banda di confidenza al 95%.
+# L’analisi visiva di PACF, invece, mostra che una barra supera la banda di confidenza al 99%.
+# Dunque, c’è un segnale potenzialmente significativo di autocorrelazione che merita almeno una verifica tramite test formale.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag    lb_stat  lb_pvalue
+# X-squared    1  0.2125788 0.64475360
+# X-squared1   2  1.0643389 0.58732941
+# X-squared2   3  2.6043531 0.45672690
+# X-squared3   4  8.8608584 0.06467303
+# X-squared4   5  9.2613943 0.09908136
+# X-squared5   6 10.2466738 0.11464108
+# X-squared6   7 10.3849924 0.16778563
+# X-squared7   8 10.3881983 0.23882931
+# X-squared8   9 10.4092529 0.31838050
+# X-squared9  10 10.4208820 0.40437538
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.05. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat  arch_pvalue
+# statistic    1  0.2396936 6.244275e-01
+# statistic1   2  0.4194650 8.108011e-01
+# statistic2   3  2.7867023 4.256936e-01
+# statistic3   4 42.6703966 1.211242e-08
+# statistic4   5 43.6264684 2.757944e-08
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,1) norm
+p <- valid_models$p[10]
+q <- valid_models$q[10]
+dist <- valid_models$dist[10]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : norm 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.054855    0.019209   2.8556 0.004295
+# alpha1  0.124299    0.027693   4.4884 0.000007
+# beta1   0.819110    0.035174  23.2872 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.054855    0.028206   1.9448 0.051799
+# alpha1  0.124299    0.046939   2.6481 0.008094
+# beta1   0.819110    0.039449  20.7636 0.000000
+# 
+# LogLikelihood : -621.3758 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6345
+# Bayes        2.6608
+# Shibata      2.6344
+# Hannan-Quinn 2.6449
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.002039  0.9640
+# Lag[2*(p+q)+(p+q)-1][2]  0.033895  0.9691
+# Lag[4*(p+q)+(p+q)-1][5]  0.557627  0.9484
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                     0.7872 0.3749616
+# Lag[2*(p+q)+(p+q)-1][5]   12.6593 0.0018678
+# Lag[4*(p+q)+(p+q)-1][9]   19.9078 0.0002121
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]     0.334 0.500 2.000 5.633e-01
+# ARCH Lag[5]    19.886 1.440 1.667 2.289e-05
+# ARCH Lag[7]    21.481 2.315 1.543 2.669e-05
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.4791
+# Individual Statistics:             
+# omega  0.2707
+# alpha1 0.3783
+# beta1  0.2812
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   0.846 1.01 1.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.2985 0.1947    
+# Negative Sign Bias  0.5247 0.6001    
+# Positive Sign Bias  0.2858 0.7751    
+# Joint Effect        5.3861 0.1456    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     46.93    0.0003657
+# 2    30     57.01    0.0014317
+# 3    40     63.72    0.0074838
+# 4    50     74.95    0.0099478
+# 
+# 
+# Elapsed time : 0.05727887 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.4168867
+# 2023-08-03 -0.2737180
+# 2023-08-04 -0.4612777
+# 2023-08-07  0.9309845
+# 2023-08-08 -0.4692783
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964909
+# p-value  : 3.23303e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 180.392949
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come vediamo, i residui standardizzati del GARCH(1,1) con distribuzione normale non seguono una distribuzione normale.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(3,0) sstd
+p <- valid_models$p[11]
+q <- valid_models$q[11]
+dist <- valid_models$dist[11]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.61599    0.105814  5.82146 0.000000
+# alpha1   0.10989    0.063021  1.74367 0.081217
+# alpha2   0.04819    0.056698  0.84994 0.395359
+# alpha3   0.22754    0.091079  2.49826 0.012481
+# skew     0.81869    0.050046 16.35889 0.000000
+# shape    4.58814    1.048598  4.37549 0.000012
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.61599    0.115347  5.34033 0.000000
+# alpha1   0.10989    0.061502  1.78672 0.073982
+# alpha2   0.04819    0.051892  0.92865 0.353070
+# alpha3   0.22754    0.091067  2.49861 0.012468
+# skew     0.81869    0.045478 18.00203 0.000000
+# shape    4.58814    1.289630  3.55771 0.000374
+# 
+# LogLikelihood : -601.7897 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5645
+# Bayes        2.6172
+# Shibata      2.5642
+# Hannan-Quinn 2.5852
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.1029  0.7483
+# Lag[2*(p+q)+(p+q)-1][2]    0.3092  0.7906
+# Lag[4*(p+q)+(p+q)-1][5]    1.1306  0.8295
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       4.421 3.551e-02
+# Lag[2*(p+q)+(p+q)-1][8]     21.352 5.095e-05
+# Lag[4*(p+q)+(p+q)-1][14]    27.795 2.926e-05
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     24.99 0.500 2.000 5.756e-07
+# ARCH Lag[6]     25.52 1.461 1.711 1.349e-06
+# ARCH Lag[8]     26.64 2.368 1.583 2.086e-06
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.4537
+# Individual Statistics:              
+# omega  0.24007
+# alpha1 0.17335
+# alpha2 0.09593
+# alpha3 0.22527
+# skew   0.03989
+# shape  0.08045
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias          0.79848 0.4250    
+# Negative Sign Bias 0.88389 0.3772    
+# Positive Sign Bias 0.06833 0.9455    
+# Joint Effect       3.42887 0.3301    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     28.36      0.07669
+# 2    30     38.66      0.10838
+# 3    40     45.66      0.21482
+# 4    50     50.05      0.43146
+# 
+# 
+# Elapsed time : 1.861321 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.5275417
+# 2023-08-07  0.8327573
+# 2023-08-08 -0.5109154
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.956594
+# p-value  : 1.35817e-10
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 311.671953
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(3,0) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(3,0) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.52%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 91.77%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.044892, p-value = 0.2951
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(3,0) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.126403
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.7066
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 4.590050
+# p-value: 0.0321581
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 6.101351
+# p-value: 0.0473269
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.1029470 0.7483214
+# X-squared1   2 0.5154687 0.7728005
+# X-squared2   3 1.4551953 0.6926492
+# X-squared3   4 1.7418879 0.7830953
+# X-squared4   5 1.8375635 0.8711336
+# X-squared5   6 3.6376138 0.7255798
+# X-squared6   7 3.7417083 0.8090004
+# X-squared7   8 3.8009982 0.8746169
+# X-squared8   9 4.0634297 0.9071883
+# X-squared9  10 4.0685634 0.9442010
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  4.924266 2.648205e-02
+# statistic1   2  5.837069 5.401278e-02
+# statistic2   3  5.876704 1.177654e-01
+# statistic3   4 30.648272 3.611124e-06
+# statistic4   5 30.702562 1.072290e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(3,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(3,1) sstd
+p <- valid_models$p[12]
+q <- valid_models$q[12]
+dist <- valid_models$dist[12]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.116483    0.046033  2.530405 0.011393
+# alpha1  0.035036    0.043790  0.800079 0.423665
+# alpha2  0.000000    0.058165  0.000001 0.999999
+# alpha3  0.162333    0.073083  2.221213 0.026337
+# beta1   0.691876    0.076401  9.055880 0.000000
+# skew    0.809349    0.050937 15.889176 0.000000
+# shape   5.252397    1.362764  3.854224 0.000116
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.116483    0.030040  3.877598 0.000105
+# alpha1  0.035036    0.042574  0.822933 0.410546
+# alpha2  0.000000    0.063521  0.000001 0.999999
+# alpha3  0.162333    0.079157  2.050766 0.040290
+# beta1   0.691876    0.048782 14.182900 0.000000
+# skew    0.809349    0.046200 17.518199 0.000000
+# shape   5.252397    1.607268  3.267904 0.001083
+# 
+# LogLikelihood : -594.5994 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5384
+# Bayes        2.5998
+# Shibata      2.5380
+# Hannan-Quinn 2.5626
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.2036  0.6518
+# Lag[2*(p+q)+(p+q)-1][2]    0.2628  0.8168
+# Lag[4*(p+q)+(p+q)-1][5]    0.7282  0.9174
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       11.68 0.0006334
+# Lag[2*(p+q)+(p+q)-1][11]     18.87 0.0010484
+# Lag[4*(p+q)+(p+q)-1][19]     21.00 0.0081228
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.2879 0.500 2.000  0.5915
+# ARCH Lag[7]    0.4143 1.473 1.746  0.9198
+# ARCH Lag[9]    0.8982 2.402 1.619  0.9446
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.4535
+# Individual Statistics:              
+# omega  0.04246
+# alpha1 0.04631
+# alpha2 0.06821
+# alpha3 0.05915
+# beta1  0.03108
+# skew   0.08626
+# shape  0.32699
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           0.7611 0.44697    
+# Negative Sign Bias  2.5583 0.01083  **
+# Positive Sign Bias  0.2765 0.78225    
+# Joint Effect       13.3816 0.00388 ***
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     22.96      0.23902
+# 2    30     37.27      0.13955
+# 3    40     46.17      0.20012
+# 4    50     67.35      0.04199
+# 
+# 
+# Elapsed time : 0.1836801 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4769088
+# 2023-08-07  0.8412142
+# 2023-08-08 -0.4607418
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.961570
+# p-value  : 8.60267e-10
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 187.181779
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(3,1) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(3,1) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 97.05%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 89.03%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.050764, p-value = 0.1737
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(3,1) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.139924
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.7231
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.849022
+# p-value: 0.00886898
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 8.163575
+# p-value: 0.0168773
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente se i residui sono omoschedastici oppure no tramite
+# un grafico a dispersione nel tempo.
+
+# DataFrame con residui e date
+df_resid <- data.frame(
+  Date = index(z_hat),
+  Residuals = as.numeric(z_hat)
+)
+
+# Scatterplot dei residui nel tempo
+ggplot(df_resid, aes(x = Date, y = Residuals)) +
+  geom_point(alpha = 0.6, color = "darkgreen") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Residui Standardizzati nel Tempo",
+    subtitle = "Modello GARCH(3,1) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui Standardizzati"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11)
+  )
+
+# Visto che il grafico non mostra schemi evidenti (e.g. forma a cono), questo è un ottimo segno che l'ipotesi di omoschedasticità (non condizionata)
+# potrebbe essere valida. Infatti, i residui distribuiti in questo modo casuale indicano che la varianza degli errori è costante,
+# in linea con quanto suggerito da White.
+# Dunque, il grafico rafforza l'idea che i residui siano omoschedastici e conferma l'omoschedasticità di White a un livello di significatività
+# dell'1%.
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.2036205 0.6518142
+# X-squared1   2 0.3219475 0.8513144
+# X-squared2   3 1.0137314 0.7979294
+# X-squared3   4 1.0297747 0.9052481
+# X-squared4   5 1.0717965 0.9565695
+# X-squared5   6 1.8547720 0.9325588
+# X-squared6   7 2.3964224 0.9346926
+# X-squared7   8 2.4130796 0.9656610
+# X-squared8   9 2.9420261 0.9665491
+# X-squared9  10 2.9583718 0.9823868
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  12.64659 0.0003762519
+# statistic1   2  15.11532 0.0005220963
+# statistic2   3  16.29171 0.0009880349
+# statistic3   4  22.01780 0.0001987916
+# statistic4   5  21.98976 0.0005259506
+
+# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(3,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(3,1) sged
+p <- valid_models$p[13]
+q <- valid_models$q[13]
+dist <- valid_models$dist[13]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.098638    0.039715   2.4837 0.013004
+# alpha1  0.047265    0.031163   1.5167 0.129335
+# alpha2  0.000000    0.015255   0.0000 1.000000
+# alpha3  0.153984    0.059555   2.5856 0.009722
+# beta1   0.695453    0.070487   9.8664 0.000000
+# skew    0.856695    0.059504  14.3972 0.000000
+# shape   1.274538    0.118682  10.7391 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.098638    0.029525  3.340814 0.000835
+# alpha1  0.047265    0.024857  1.901500 0.057237
+# alpha2  0.000000    0.003745  0.000001 0.999999
+# alpha3  0.153984    0.053868  2.858573 0.004256
+# beta1   0.695453    0.050689 13.719893 0.000000
+# skew    0.856695    0.088035  9.731353 0.000000
+# shape   1.274538    0.172360  7.394623 0.000000
+# 
+# LogLikelihood : -595.6967 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5430
+# Bayes        2.6045
+# Shibata      2.5426
+# Hannan-Quinn 2.5672
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.1156  0.7339
+# Lag[2*(p+q)+(p+q)-1][2]    0.1575  0.8810
+# Lag[4*(p+q)+(p+q)-1][5]    0.5557  0.9488
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic  p-value
+# Lag[1]                       6.999 0.008156
+# Lag[2*(p+q)+(p+q)-1][11]    13.709 0.016347
+# Lag[4*(p+q)+(p+q)-1][19]    15.935 0.068905
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.1439 0.500 2.000  0.7044
+# ARCH Lag[7]    0.3118 1.473 1.746  0.9454
+# ARCH Lag[9]    0.9218 2.402 1.619  0.9417
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.688
+# Individual Statistics:              
+# omega  0.09843
+# alpha1 0.15357
+# alpha2 0.28165
+# alpha3 0.20164
+# beta1  0.10072
+# skew   0.30929
+# shape  0.46689
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.0452 0.2964    
+# Negative Sign Bias  1.8482 0.0652   *
+# Positive Sign Bias  0.1211 0.9037    
+# Joint Effect       10.0916 0.0178  **
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     26.76     0.110381
+# 2    30     50.30     0.008374
+# 3    40     51.91     0.080861
+# 4    50     64.61     0.066738
+# 
+# 
+# Elapsed time : 0.3509951 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4805232
+# 2023-08-07  0.8565601
+# 2023-08-08 -0.4691642
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.963842
+# p-value  : 2.10109e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 166.703118
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(3,1) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(3,1) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.31%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 88.82%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.048893, p-value = 0.2072
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(3,1) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.140033
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.5543
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.443224
+# p-value: 0.0111376
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.424023
+# p-value: 0.0244283
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.1155779 0.7338810
+# X-squared1   2 0.1995161 0.9050564
+# X-squared2   3 0.7854043 0.8529549
+# X-squared3   4 0.7977541 0.9387489
+# X-squared4   5 0.8801423 0.9716426
+# X-squared5   6 1.7135620 0.9440695
+# X-squared6   7 2.2546535 0.9444128
+# X-squared7   8 2.2738442 0.9714446
+# X-squared8   9 2.7686357 0.9727659
+# X-squared9  10 2.7936315 0.9858720
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat arch_pvalue
+# statistic    1  7.798265 0.005229643
+# statistic1   2  9.883236 0.007143031
+# statistic2   3 10.240157 0.016631241
+# statistic3   4 16.358222 0.002574292
+# statistic4   5 16.346225 0.005922059
+
+# Alla luce dei risultati, per i lag 1, 2, 4 e 5 il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(3,1) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui (anche) a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(0,2) sstd
+p <- valid_models$p[14]
+q <- valid_models$q[14]
+dist <- valid_models$dist[14]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(0,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#        Estimate  Std. Error    t value Pr(>|t|)
+# omega  0.004014    0.002897 1.3855e+00  0.16590
+# beta1  0.000002    0.002089 1.0150e-03  0.99919
+# beta2  0.998998    0.000288 3.4701e+03  0.00000
+# skew   0.843382    0.045248 1.8639e+01  0.00000
+# shape  2.861323    0.252999 1.1310e+01  0.00000
+# 
+# Robust Standard Errors:
+#        Estimate  Std. Error    t value Pr(>|t|)
+# omega  0.004014    0.002447 1.6408e+00  0.10084
+# beta1  0.000002    0.001176 1.8030e-03  0.99856
+# beta2  0.998998    0.000563 1.7737e+03  0.00000
+# skew   0.843382    0.041121 2.0510e+01  0.00000
+# shape  2.861323    0.349082 8.1967e+00  0.00000
+# 
+# LogLikelihood : -613.6477 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6103
+# Bayes        2.6542
+# Shibata      2.6101
+# Hannan-Quinn 2.6276
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.455 0.22773
+# Lag[2*(p+q)+(p+q)-1][2]     2.813 0.15772
+# Lag[4*(p+q)+(p+q)-1][5]     7.235 0.04546
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                      24.40 7.825e-07
+# Lag[2*(p+q)+(p+q)-1][5]     58.79 2.220e-16
+# Lag[4*(p+q)+(p+q)-1][9]     75.14 0.000e+00
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]     36.44 0.500 2.000 1.572e-09
+# ARCH Lag[5]     61.13 1.440 1.667 6.661e-16
+# ARCH Lag[7]     63.39 2.315 1.543 2.220e-16
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  5.3961
+# Individual Statistics:             
+# omega 0.47664
+# beta1 0.43589
+# beta2 0.43541
+# skew  0.03962
+# shape 0.16464
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value      prob sig
+# Sign Bias            0.510 6.103e-01    
+# Negative Sign Bias   4.089 5.096e-05 ***
+# Positive Sign Bias   2.858 4.452e-03 ***
+# Joint Effect        28.418 2.968e-06 ***
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     29.29     0.061541
+# 2    30     49.92     0.009203
+# 3    40     56.63     0.033667
+# 4    50     67.77     0.038991
+# 
+# 
+# Elapsed time : 0.144757
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01.
+# Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2715804
+# 2023-08-04 -0.4289266
+# 2023-08-07  0.8212799
+# 2023-08-08 -0.4118624
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.873785
+# p-value  : 3.53398e-19
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 5174.764876
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(0,2) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(0,2) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 100.00%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 96.41%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.040722, p-value = 0.4115
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(0,2) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.074890
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 19.1305
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 2.898838
+# p-value: 0.0886434
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 4.317036
+# p-value: 0.115496
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, una barra supera la banda di confidenza al 95% ma non al 99%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat  lb_pvalue
+# X-squared    1  1.454986 0.22772957
+# X-squared1   2  4.170374 0.12428388
+# X-squared2   3  9.299621 0.02556144
+# X-squared3   4 10.625233 0.03111497
+# X-squared4   5 10.626362 0.05931257
+# X-squared5   6 11.162726 0.08347551
+# X-squared6   7 11.241387 0.12843094
+# X-squared7   8 11.403628 0.17986079
+# X-squared8   9 11.475540 0.24451503
+# X-squared9  10 11.591983 0.31329094
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  26.30319 2.918068e-07
+# statistic1   2  27.19728 1.242182e-06
+# statistic2   3  69.04815 6.824314e-15
+# statistic3   4  75.77816 1.363987e-15
+# statistic4   5  75.86246 6.146030e-15
+
+# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(0,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,1) norm
+p <- valid_models$p[15]
+q <- valid_models$q[15]
+dist <- valid_models$dist[15]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : norm 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.058821    0.022447  2.62046 0.008781
+# alpha1  0.105144    0.042681  2.46349 0.013759
+# alpha2  0.028057    0.052367  0.53579 0.592106
+# beta1   0.806491    0.045730 17.63601 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.058821    0.034891  1.68584 0.091827
+# alpha1  0.105144    0.052986  1.98438 0.047213
+# alpha2  0.028057    0.044982  0.62375 0.532794
+# beta1   0.806491    0.058664 13.74769 0.000000
+# 
+# LogLikelihood : -621.3596 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6386
+# Bayes        2.6738
+# Shibata      2.6385
+# Hannan-Quinn 2.6525
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.007059  0.9330
+# Lag[2*(p+q)+(p+q)-1][2]  0.040325  0.9639
+# Lag[4*(p+q)+(p+q)-1][5]  0.558405  0.9483
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       1.542 0.2142936
+# Lag[2*(p+q)+(p+q)-1][8]     18.081 0.0003665
+# Lag[4*(p+q)+(p+q)-1][14]    22.904 0.0004519
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     21.98 0.500 2.000 2.749e-06
+# ARCH Lag[6]     22.08 1.461 1.711 9.472e-06
+# ARCH Lag[8]     22.45 2.368 1.583 2.361e-05
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.5092
+# Individual Statistics:             
+# omega  0.2760
+# alpha1 0.4043
+# alpha2 0.3218
+# beta1  0.2898
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.2303 0.2192    
+# Negative Sign Bias  0.7596 0.4479    
+# Positive Sign Bias  0.2050 0.8377    
+# Joint Effect        5.7578 0.1240    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     48.78    0.0001974
+# 2    30     58.53    0.0009373
+# 3    40     68.45    0.0024612
+# 4    50     76.63    0.0070186
+# 
+# 
+# Elapsed time : 0.07643819 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2658114
+# 2023-08-04 -0.4396988
+# 2023-08-07  0.8964298
+# 2023-08-08 -0.4588900
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964704
+# p-value  : 2.97489e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 180.253765
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come vediamo, i residui standardizzati del GARCH(2,1) con distribuzione normale non seguono una distribuzione normale.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,2) norm
+p <- valid_models$p[16]
+q <- valid_models$q[16]
+dist <- valid_models$dist[16]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : norm 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.055091    0.014857   3.7081 0.000209
+# alpha1  0.124492    0.002618  47.5454 0.000000
+# beta1   0.818659    0.303358   2.6987 0.006962
+# beta2   0.000000    0.264451   0.0000 1.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.055091    0.031171 1.767397 0.077162
+# alpha1  0.124492    0.053199 2.340126 0.019277
+# beta1   0.818659    0.204559 4.002065 0.000063
+# beta2   0.000000    0.159228 0.000001 0.999999
+# 
+# LogLikelihood : -621.4977 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6392
+# Bayes        2.6743
+# Shibata      2.6391
+# Hannan-Quinn 2.6530
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.001879  0.9654
+# Lag[2*(p+q)+(p+q)-1][2]  0.033143  0.9697
+# Lag[4*(p+q)+(p+q)-1][5]  0.553959  0.9490
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                      0.7958 0.3723465
+# Lag[2*(p+q)+(p+q)-1][8]    18.6669 0.0002584
+# Lag[4*(p+q)+(p+q)-1][14]   23.8963 0.0002625
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     24.51 0.500 2.000 7.408e-07
+# ARCH Lag[6]     24.58 1.461 1.711 2.293e-06
+# ARCH Lag[8]     25.00 2.368 1.583 5.420e-06
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.5426
+# Individual Statistics:             
+# omega  0.2713
+# alpha1 0.3794
+# beta1  0.2834
+# beta2  0.2686
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.2897 0.1978    
+# Negative Sign Bias  0.5285 0.5974    
+# Positive Sign Bias  0.2864 0.7747    
+# Joint Effect        5.3506 0.1479    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     46.59    0.0004086
+# 2    30     55.87    0.0019565
+# 3    40     61.02    0.0136039
+# 4    50     78.32    0.0049042
+# 
+# 
+# Elapsed time : 0.151052 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2607727
+# 2023-08-04 -0.4408975
+# 2023-08-07  0.8935150
+# 2023-08-08 -0.4534967
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964812
+# p-value  : 3.10789e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 181.821832
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come vediamo, i residui standardizzati del GARCH(1,2) con distribuzione normale non seguono una distribuzione normale.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,2) sstd
+p <- valid_models$p[17]
+q <- valid_models$q[17]
+dist <- valid_models$dist[17]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.089235    0.030614  2.91489 0.003558
+# alpha1  0.074278    0.031498  2.35814 0.018367
+# alpha2  0.045566    0.065406  0.69666 0.486014
+# beta1   0.790935    0.407955  1.93878 0.052528
+# beta2   0.000000    0.362010  0.00000 1.000000
+# skew    0.823080    0.049741 16.54734 0.000000
+# shape   4.808452    1.139131  4.22116 0.000024
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.089235    0.037170   2.4007 0.016362
+# alpha1  0.074278    0.043926   1.6910 0.090843
+# alpha2  0.045566    0.036515   1.2479 0.212083
+# beta1   0.790935    0.386517   2.0463 0.040726
+# beta2   0.000000    0.319878   0.0000 1.000000
+# skew    0.823080    0.043753  18.8121 0.000000
+# shape   4.808452    1.424830   3.3748 0.000739
+# 
+# LogLikelihood : -597.7414 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5517
+# Bayes        2.6131
+# Shibata      2.5512
+# Hannan-Quinn 2.5758
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.04076  0.8400
+# Lag[2*(p+q)+(p+q)-1][2]   0.12192  0.9045
+# Lag[4*(p+q)+(p+q)-1][5]   0.88148  0.8859
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       5.667 1.729e-02
+# Lag[2*(p+q)+(p+q)-1][11]    31.911 4.628e-07
+# Lag[4*(p+q)+(p+q)-1][19]    36.860 2.105e-06
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]   0.07908 0.500 2.000  0.7785
+# ARCH Lag[7]   0.27571 1.473 1.746  0.9539
+# ARCH Lag[9]   1.18232 2.402 1.619  0.9048
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  2.7644
+# Individual Statistics:              
+# omega  0.04153
+# alpha1 0.07002
+# alpha2 0.05070
+# beta1  0.03254
+# beta2  0.03167
+# skew   0.05876
+# shape  0.30012
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          0.90214 0.36745    
+# Negative Sign Bias 1.66599 0.09638   *
+#   Positive Sign Bias 0.08644 0.93116    
+# Joint Effect       8.00749 0.04586  **
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     20.18      0.38399
+# 2    30     32.84      0.28443
+# 3    40     37.73      0.52775
+# 4    50     67.56      0.04047
+# 
+# 
+# Elapsed time : 0.1699739 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01 (in realtà
+# anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2712217
+# 2023-08-04 -0.4381200
+# 2023-08-07  0.8893370
+# 2023-08-08 -0.4568725
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.962237
+# p-value  : 1.11415e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 205.574068
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(2,2) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(2,2) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.10%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 88.19%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.051286, p-value = 0.1652
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(2,2) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.119361
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.0162
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.453790
+# p-value: 0.0110716
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.933835
+# p-value: 0.0189317
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag    lb_stat lb_pvalue
+# X-squared    1 0.04075577 0.8400101
+# X-squared1   2 0.20309091 0.9034401
+# X-squared2   3 1.10826815 0.7750785
+# X-squared3   4 1.52727941 0.8217985
+# X-squared4   5 1.52801535 0.9098144
+# X-squared5   6 2.23986528 0.8963696
+# X-squared6   7 2.58565868 0.9205100
+# X-squared7   8 2.64555648 0.9545976
+# X-squared8   9 3.21189874 0.9552978
+# X-squared9  10 3.23053359 0.9754664
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  6.551262 1.048098e-02
+# statistic1   2  9.511962 8.600105e-03
+# statistic2   3 13.354318 3.929785e-03
+# statistic3   4 37.313059 1.552669e-07
+# statistic4   5 37.636659 4.463502e-07
+
+# Alla luce dei risultati, a partire dal lag 2, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,3) sstd
+p <- valid_models$p[18]
+q <- valid_models$q[18]
+dist <- valid_models$dist[18]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,3)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega    0.08214    0.027643  2.971494 0.002964
+# alpha1   0.10845    0.021147  5.128628 0.000000
+# beta1    0.80919    0.385510  2.099007 0.035816
+# beta2    0.00000    0.549871  0.000001 0.999999
+# beta3    0.00000    0.483271  0.000000 1.000000
+# skew     0.82515    0.049926 16.527413 0.000000
+# shape    4.79534    1.179338  4.066130 0.000048
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.08214    0.034025   2.4141 0.015775
+# alpha1   0.10845    0.039796   2.7252 0.006426
+# beta1    0.80919    0.335976   2.4085 0.016019
+# beta2    0.00000    0.900544   0.0000 1.000000
+# beta3    0.00000    0.613173   0.0000 1.000000
+# skew     0.82515    0.044988  18.3416 0.000000
+# shape    4.79534    1.446138   3.3160 0.000913
+# 
+# LogLikelihood : -597.8726 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5522
+# Bayes        2.6137
+# Shibata      2.5518
+# Hannan-Quinn 2.5764
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.008046  0.9285
+# Lag[2*(p+q)+(p+q)-1][2]  0.088315  0.9279
+# Lag[4*(p+q)+(p+q)-1][5]  0.847039  0.8932
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                        2.26 1.328e-01
+# Lag[2*(p+q)+(p+q)-1][11]     32.05 4.246e-07
+# Lag[4*(p+q)+(p+q)-1][19]     37.71 1.295e-06
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.0262 0.500 2.000  0.8714
+# ARCH Lag[7]    0.1812 1.473 1.746  0.9744
+# ARCH Lag[9]    1.3221 2.402 1.619  0.8825
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  2.9437
+# Individual Statistics:              
+# omega  0.04236
+# alpha1 0.05715
+# beta1  0.03221
+# beta2  0.03085
+# beta3  0.03201
+# skew   0.05503
+# shape  0.28953
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias          1.06981 0.2853    
+# Negative Sign Bias 1.08710 0.2775    
+# Positive Sign Bias 0.09855 0.9215    
+# Joint Effect       6.10789 0.1065    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     19.16      0.44633
+# 2    30     33.34      0.26417
+# 3    40     37.39      0.54330
+# 4    50     67.35      0.04199
+# 
+# 
+# Elapsed time : 0.194886 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01 (in realtà
+# anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4550104
+# 2023-08-07  0.9122676
+# 2023-08-08 -0.4598059
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.962959
+# p-value  : 1.47915e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 207.212752
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,3) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,3) model for SPY (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 96.62%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 87.34%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.050048, p-value = 0.186
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,3) con distribuzione skewed Student-t per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.115835
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 6.0653
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.009526
+# p-value: 0.0142288
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.409151
+# p-value: 0.0246107
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.008045776 0.9285270
+# X-squared1   2 0.168584651 0.9191625
+# X-squared2   3 0.946793527 0.8141232
+# X-squared3   4 1.549548668 0.8178298
+# X-squared4   5 1.562222828 0.9057795
+# X-squared5   6 2.288130357 0.8913850
+# X-squared6   7 2.618852598 0.9178847
+# X-squared7   8 2.693828958 0.9520794
+# X-squared8   9 3.172191870 0.9570748
+# X-squared9  10 3.213920903 0.9759320
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  2.846085 9.159676e-02
+# statistic1   2  4.932675 8.489520e-02
+# statistic2   3  7.215970 6.532356e-02
+# statistic3   4 39.102365 6.635385e-08
+# statistic4   5 39.237914 2.126847e-07
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,3) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,2) sged
+p <- valid_models$p[19]
+q <- valid_models$q[19]
+dist <- valid_models$dist[19]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.067077    0.006905  9.713626  0.00000
+# alpha1  0.084047    0.014007  6.000392  0.00000
+# alpha2  0.042507    0.083845  0.506968  0.61218
+# beta1   0.800768    0.081111  9.872520  0.00000
+# beta2   0.000000    0.160567  0.000003  1.00000
+# skew    0.875272    0.045616 19.187939  0.00000
+# shape   1.223434    0.109523 11.170610  0.00000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.067077    0.038794  1.729071 0.083796
+# alpha1  0.084047    0.099277  0.846588 0.397225
+# alpha2  0.042507    0.149508  0.284310 0.776172
+# beta1   0.800768    0.190885  4.195028 0.000027
+# beta2   0.000000    0.274029  0.000002 0.999999
+# skew    0.875272    0.049451 17.699960 0.000000
+# shape   1.223434    0.150905  8.107299 0.000000
+# 
+# LogLikelihood : -598.7948 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5561
+# Bayes        2.6175
+# Shibata      2.5557
+# Hannan-Quinn 2.5803
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.02121  0.8842
+# Lag[2*(p+q)+(p+q)-1][2]   0.06919  0.9418
+# Lag[4*(p+q)+(p+q)-1][5]   0.66360  0.9298
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       3.287 6.981e-02
+# Lag[2*(p+q)+(p+q)-1][11]    24.525 4.062e-05
+# Lag[4*(p+q)+(p+q)-1][19]    28.928 1.623e-04
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.0437 0.500 2.000  0.8344
+# ARCH Lag[7]    0.3454 1.473 1.746  0.9372
+# ARCH Lag[9]    1.2252 2.402 1.619  0.8981
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  2.7474
+# Individual Statistics:             
+# omega  0.1073
+# alpha1 0.2133
+# alpha2 0.1612
+# beta1  0.1171
+# beta2  0.1105
+# skew   0.1866
+# shape  0.4382
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          1.07708 0.28200    
+# Negative Sign Bias 1.20642 0.22826    
+# Positive Sign Bias 0.06476 0.94839    
+# Joint Effect       6.70116 0.08206   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     18.07       0.5179
+# 2    30     37.14       0.1427
+# 3    40     42.46       0.3244
+# 4    50     59.97       0.1355
+# 
+# 
+# Elapsed time : 0.273927
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2702921
+# 2023-08-04 -0.4402155
+# 2023-08-07  0.8978477
+# 2023-08-08 -0.4620933
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964012
+# p-value  : 2.24905e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 185.936466
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(2,2) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(2,2) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 97.89%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 86.71%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.049353, p-value = 0.1985
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(2,2) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.127136
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.8196
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 5.899653
+# p-value: 0.0151439
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 6.906148
+# p-value: 0.0316482
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.0212084 0.8842127
+# X-squared1   2 0.1171740 0.9430962
+# X-squared2   3 0.8690616 0.8328868
+# X-squared3   4 1.1454541 0.8869950
+# X-squared4   5 1.1651148 0.9481800
+# X-squared5   6 1.8932392 0.9292507
+# X-squared6   7 2.3166978 0.9402564
+# X-squared7   8 2.3689429 0.9675624
+# X-squared8   9 2.9069804 0.9678688
+# X-squared9  10 2.9453551 0.9826809
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  3.934858 4.729514e-02
+# statistic1   2  6.787551 3.358165e-02
+# statistic2   3  8.555300 3.582675e-02
+# statistic3   4 29.151662 7.281959e-06
+# statistic4   5 29.271813 2.050727e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,2) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui (anche) a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,3) sged
+p <- valid_models$p[20]
+q <- valid_models$q[20]
+dist <- valid_models$dist[20]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,3)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.061513    0.021378  2.877422 0.004009
+# alpha1  0.115436    0.033358  3.460519 0.000539
+# beta1   0.817783    0.040881 20.004142 0.000000
+# beta2   0.000006    0.010904  0.000556 0.999557
+# beta3   0.000001    0.010716  0.000081 0.999935
+# skew    0.879569    0.044108 19.941492 0.000000
+# shape   1.219136    0.109330 11.150955 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.061513    0.014812  4.153036 0.000033
+# alpha1  0.115436    0.038165  3.024645 0.002489
+# beta1   0.817783    0.025648 31.884867 0.000000
+# beta2   0.000006    0.000392  0.015471 0.987657
+# beta3   0.000001    0.000811  0.001075 0.999142
+# skew    0.879569    0.047008 18.710940 0.000000
+# shape   1.219136    0.149898  8.133109 0.000000
+# 
+# LogLikelihood : -598.9084 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5566
+# Bayes        2.6180
+# Shibata      2.5561
+# Hannan-Quinn 2.5807
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                   0.003796  0.9509
+# Lag[2*(p+q)+(p+q)-1][2]  0.048844  0.9572
+# Lag[4*(p+q)+(p+q)-1][5]  0.641178  0.9339
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                       1.256 2.625e-01
+# Lag[2*(p+q)+(p+q)-1][11]    25.166 2.778e-05
+# Lag[4*(p+q)+(p+q)-1][19]    30.058 8.925e-05
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]   0.01747 0.500 2.000  0.8948
+# ARCH Lag[7]   0.27789 1.473 1.746  0.9534
+# ARCH Lag[9]   1.30632 2.402 1.619  0.8851
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  3.0016
+# Individual Statistics:             
+# omega  0.1040
+# alpha1 0.1803
+# beta1  0.1077
+# beta2  0.1012
+# beta3  0.1025
+# skew   0.1696
+# shape  0.4204
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.2095 0.2271    
+# Negative Sign Bias  0.7375 0.4612    
+# Positive Sign Bias  0.2178 0.8277    
+# Joint Effect        5.5698 0.1345    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     19.25      0.44097
+# 2    30     37.90      0.12460
+# 3    40     45.16      0.23024
+# 4    50     64.19      0.07146
+# 
+# 
+# Elapsed time : 0.313683 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4574297
+# 2023-08-07  0.9220828
+# 2023-08-08 -0.4658767
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.964493
+# p-value  : 2.73102e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 186.619456
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,3) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,3) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 97.26%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 84.60%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.04847, p-value = 0.2154
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,3) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.124907
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.8525
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 5.604429
+# p-value: 0.0179151
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 6.565835
+# p-value: 0.0375186
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.003796298 0.9508701
+# X-squared1   2 0.093890860 0.9541395
+# X-squared2   3 0.758474981 0.8593713
+# X-squared3   4 1.153258813 0.8857326
+# X-squared4   5 1.196466819 0.9452159
+# X-squared5   6 1.933250697 0.9257340
+# X-squared6   7 2.355688205 0.9375664
+# X-squared7   8 2.420275149 0.9653450
+# X-squared8   9 2.884326068 0.9687048
+# X-squared9  10 2.952657036 0.9825163
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  1.676618 1.953745e-01
+# statistic1   2  3.870656 1.443769e-01
+# statistic2   3  4.917365 1.779491e-01
+# statistic3   4 30.777696 3.398260e-06
+# statistic4   5 30.789215 1.030900e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,3) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui (anche) a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(3,1) norm
+p <- valid_models$p[21]
+q <- valid_models$q[21]
+dist <- valid_models$dist[21]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : norm 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.105367    0.045403   2.3207 0.020303
+# alpha1  0.068542    0.028427   2.4111 0.015904
+# alpha2  0.000000    0.080827   0.0000 1.000000
+# alpha3  0.151382    0.071307   2.1230 0.033756
+# beta1   0.672040    0.090561   7.4209 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.105367    0.066073   1.5947 0.110776
+# alpha1  0.068542    0.040936   1.6744 0.094056
+# alpha2  0.000000    0.130703   0.0000 1.000000
+# alpha3  0.151382    0.120751   1.2537 0.209960
+# beta1   0.672040    0.116040   5.7915 0.000000
+# 
+# LogLikelihood : -616.8266 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.6237
+# Bayes        2.6676
+# Shibata      2.6235
+# Hannan-Quinn 2.6410
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.05764  0.8103
+# Lag[2*(p+q)+(p+q)-1][2]   0.09403  0.9239
+# Lag[4*(p+q)+(p+q)-1][5]   0.46405  0.9631
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                       3.586 0.05827
+# Lag[2*(p+q)+(p+q)-1][11]    10.555 0.07399
+# Lag[4*(p+q)+(p+q)-1][19]    12.754 0.20996
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]   0.04383 0.500 2.000  0.8342
+# ARCH Lag[7]   0.17395 1.473 1.746  0.9758
+# ARCH Lag[9]   0.86081 2.402 1.619  0.9492
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.6403
+# Individual Statistics:             
+# omega  0.2839
+# alpha1 0.3041
+# alpha2 0.7022
+# alpha3 0.4016
+# beta1  0.2930
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias          1.29581 0.19568    
+# Negative Sign Bias 1.14658 0.25214    
+# Positive Sign Bias 0.02909 0.97681    
+# Joint Effect       7.66552 0.05345   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     39.33     0.003999
+# 2    30     54.86     0.002572
+# 3    40     58.66     0.022393
+# 4    50     80.43     0.003092
+# 
+# 
+# Elapsed time : 0.09960079 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di
+# assenza di autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4854058
+# 2023-08-07  0.8679370
+# 2023-08-08 -0.4745663
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.965684
+# p-value  : 4.44448e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 155.310919
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come vediamo, i residui standardizzati del GARCH(3,1) con distribuzione normale non seguono una distribuzione normale.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(4,0) sged
+p <- valid_models$p[22]
+q <- valid_models$q[22]
+dist <- valid_models$dist[22]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(4,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.49031    0.074166  6.61096 0.000000
+# alpha1   0.09217    0.051897  1.77601 0.075731
+# alpha2   0.03518    0.049702  0.70782 0.479056
+# alpha3   0.15090    0.074679  2.02061 0.043321
+# alpha4   0.17451    0.078474  2.22379 0.026163
+# skew     0.88289    0.040314 21.90022 0.000000
+# shape    1.22502    0.114124 10.73410 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.49031    0.068560  7.15153 0.000000
+# alpha1   0.09217    0.049894  1.84732 0.064701
+# alpha2   0.03518    0.041299  0.85184 0.394304
+# alpha3   0.15090    0.061579  2.45048 0.014267
+# alpha4   0.17451    0.094984  1.83726 0.066172
+# skew     0.88289    0.040180 21.97321 0.000000
+# shape    1.22502    0.141308  8.66917 0.000000
+# 
+# LogLikelihood : -599.5733 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5594
+# Bayes        2.6208
+# Shibata      2.5590
+# Hannan-Quinn 2.5835
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                    0.01938  0.8893
+# Lag[2*(p+q)+(p+q)-1][2]   0.12575  0.9020
+# Lag[4*(p+q)+(p+q)-1][5]   0.89022  0.8840
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                       2.153  0.1423
+# Lag[2*(p+q)+(p+q)-1][11]     6.865  0.3280
+# Lag[4*(p+q)+(p+q)-1][19]    10.290  0.4203
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]   0.08928 0.500 2.000  0.7651
+# ARCH Lag[7]   1.46000 1.473 1.746  0.6330
+# ARCH Lag[9]   2.49317 2.402 1.619  0.6620
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.426
+# Individual Statistics:              
+# omega  0.27573
+# alpha1 0.17274
+# alpha2 0.09834
+# alpha3 0.27530
+# alpha4 0.55326
+# skew   0.19975
+# shape  0.21452
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           1.1597 0.24674    
+# Negative Sign Bias  1.2052 0.22872    
+# Positive Sign Bias  0.2122 0.83206    
+# Joint Effect        7.6491 0.05385   *
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     22.46      0.26217
+# 2    30     34.10      0.23557
+# 3    40     43.47      0.28682
+# 4    50     65.45      0.05807
+# 
+# 
+# Elapsed time : 0.8967829  
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4294846
+# 2023-08-07  0.9581896
+# 2023-08-08 -0.4538712
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.971016
+# p-value  : 4.50416e-08
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 100.541327
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(4,0) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(4,0) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 96.41%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 79.54%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.048102, p-value = 0.2227
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(4,0) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.117720
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 5.0007
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 8.270739
+# p-value: 0.00402891
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 10.037730
+# p-value: 0.00661203
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Dai risultati dei test abbiamo un rigetto dell'ipotesi nulla di omoschedasticità (non condizionata) con un livello di significatività dell'1%.
+
+# Andiamo a vedere anche graficamente se i residui sono omoschedastici oppure no tramite
+# un grafico a dispersione nel tempo.
+
+# DataFrame con residui e date
+df_resid <- data.frame(
+  Date = index(z_hat),
+  Residuals = as.numeric(z_hat)
+)
+
+# Scatterplot dei residui nel tempo
+ggplot(df_resid, aes(x = Date, y = Residuals)) +
+  geom_point(alpha = 0.6, color = "darkgreen") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Residui Standardizzati nel Tempo",
+    subtitle = "Modello GARCH(4,0) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui Standardizzati"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11)
+  )
+
+# Visto che il grafico non mostra schemi evidenti (e.g. forma a cono), questo è un ottimo segno che l'ipotesi di omoschedasticità (non condizionata)
+# potrebbe essere valida. Infatti, i residui distribuiti in questo modo casuale indicano che la varianza degli errori è costante.
+# Dunque, il grafico ci dà l'idea che i residui siano omoschedastici.
+
+# FARE LA RIGA DOPO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1 0.003796298 0.9508701
+# X-squared1   2 0.093890860 0.9541395
+# X-squared2   3 0.758474981 0.8593713
+# X-squared3   4 1.153258813 0.8857326
+# X-squared4   5 1.196466819 0.9452159
+# X-squared5   6 1.933250697 0.9257340
+# X-squared6   7 2.355688205 0.9375664
+# X-squared7   8 2.420275149 0.9653450
+# X-squared8   9 2.884326068 0.9687048
+# X-squared9  10 2.952657036 0.9825163
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  1.676618 1.953745e-01
+# statistic1   2  3.870656 1.443769e-01
+# statistic2   3  4.917365 1.779491e-01
+# statistic3   4 30.777696 3.398260e-06
+# statistic4   5 30.789215 1.030900e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,3) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui (anche) a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
 
 
 
@@ -2914,1516 +10580,480 @@ stats::ks.test(x=z_hat, y="psged", mean=0, sd=1, nu=shape, xi=skew, alternative=
 
 
 
-# p <- valid_models$p[10]
-# q <- valid_models$q[10]
-# dist <- valid_models$dist[10]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model 	  : sGARCH(0,1)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : norm
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #        Estimate  Std. Error   t value Pr(>|t|)
-# # omega  0.000798    0.000092    8.7141        0
-# # beta1  0.999000    0.000142 7032.3749        0
-# #
-# # Robust Standard Errors:
-# #        Estimate  Std. Error   t value Pr(>|t|)
-# # omega  0.000798    0.000099    8.0559        0
-# # beta1  0.999000    0.000148 6772.8475        0
-# #
-# # LogLikelihood : -475.0635
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3913
-# # Bayes        2.4113
-# # Shibata      2.3912
-# # Hannan-Quinn 2.3992
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.7878  0.3748
-# # Lag[2*(p+q)+(p+q)-1][2]    0.8376  0.5540
-# # Lag[4*(p+q)+(p+q)-1][5]    1.3082  0.7869
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.6610 0.41619
-# # Lag[2*(p+q)+(p+q)-1][2]    0.9552 0.51301
-# # Lag[4*(p+q)+(p+q)-1][5]    5.8924 0.09534
-# # d.o.f=1
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[2]    0.5824 0.500 2.000 0.44538
-# # ARCH Lag[4]    6.1721 1.397 1.611 0.04544
-# # ARCH Lag[6]    9.0003 2.222 1.500 0.02403
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  1.1562
-# # Individual Statistics:
-# # omega 0.1430
-# # beta1 0.1384
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   0.61 0.749 1.07
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           1.5725 0.11663
-# # Negative Sign Bias  0.7203 0.47180
-# # Positive Sign Bias  0.4206 0.67424
-# # Joint Effect        7.7482 0.05151   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     44.66    0.0007648
-# # 2    30     62.28    0.0003189
-# # 3    40     71.48    0.0011586
-# # 4    50     88.34    0.0004864
-# #
-# #
-# # Elapsed time : 0.06993294
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.7586932
-# # 2023-08-03 -0.3602748
-# # 2023-08-04 -0.5689350
-# # 2023-08-07  1.0906310
-# # 2023-08-08 -0.5468688
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.983377
-# # p-value  : 0.00015127
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 26.449214
-# # p-value  : 1.80562e-06
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
 
 
-# # Analizziamo il prossimo nella classifica: GARCH(0,1) norm
-# p <- valid_models$p[2]
-# q <- valid_models$q[2]
-# dist <- valid_models$dist[2]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model 	  : sGARCH(0,1)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : norm
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #        Estimate  Std. Error   t value Pr(>|t|)
-# # omega  0.000798    0.000092    8.7141        0
-# # beta1  0.999000    0.000142 7032.3749        0
-# #
-# # Robust Standard Errors:
-# #        Estimate  Std. Error   t value Pr(>|t|)
-# # omega  0.000798    0.000099    8.0559        0
-# # beta1  0.999000    0.000148 6772.8475        0
-# #
-# # LogLikelihood : -475.0635
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3913
-# # Bayes        2.4113
-# # Shibata      2.3912
-# # Hannan-Quinn 2.3992
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.7878  0.3748
-# # Lag[2*(p+q)+(p+q)-1][2]    0.8376  0.5540
-# # Lag[4*(p+q)+(p+q)-1][5]    1.3082  0.7869
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.6610 0.41619
-# # Lag[2*(p+q)+(p+q)-1][2]    0.9552 0.51301
-# # Lag[4*(p+q)+(p+q)-1][5]    5.8924 0.09534
-# # d.o.f=1
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[2]    0.5824 0.500 2.000 0.44538
-# # ARCH Lag[4]    6.1721 1.397 1.611 0.04544
-# # ARCH Lag[6]    9.0003 2.222 1.500 0.02403
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  1.1562
-# # Individual Statistics:
-# # omega 0.1430
-# # beta1 0.1384
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   0.61 0.749 1.07
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           1.5725 0.11663
-# # Negative Sign Bias  0.7203 0.47180
-# # Positive Sign Bias  0.4206 0.67424
-# # Joint Effect        7.7482 0.05151   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     44.66    0.0007648
-# # 2    30     62.28    0.0003189
-# # 3    40     71.48    0.0011586
-# # 4    50     88.34    0.0004864
-# #
-# #
-# # Elapsed time : 0.06993294
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.7586932
-# # 2023-08-03 -0.3602748
-# # 2023-08-04 -0.5689350
-# # 2023-08-07  1.0906310
-# # 2023-08-08 -0.5468688
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.983377
-# # p-value  : 0.00015127
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 26.449214
-# # p-value  : 1.80562e-06
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Visto che i residui standardizzati del GARCH(0,1) con distribuzione normale non seguono una distribuzione normale,
-# # questo modello è da scartare.
-# 
-# # Analizziamo il prossimo nella classifica: GARCH(0,1) sged
-# p <- valid_models$p[3]
-# q <- valid_models$q[3]
-# dist <- valid_models$dist[3]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model	    : sGARCH(0,1)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : sged
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #        Estimate  Std. Error  t value Pr(>|t|)
-# # omega  0.000795    0.000118    6.751        0
-# # beta1  0.999000    0.000216 4616.366        0
-# # skew   0.888516    0.044940   19.771        0
-# # shape  1.367556    0.135935   10.060        0
-# #
-# # Robust Standard Errors:
-# #        Estimate  Std. Error   t value Pr(>|t|)
-# # omega  0.000795    0.000186    4.2728  1.9e-05
-# # beta1  0.999000    0.000172 5808.6056  0.0e+00
-# # skew   0.888516    0.036383   24.4209  0.0e+00
-# # shape  1.367556    0.152439    8.9712  0.0e+00
-# #
-# # LogLikelihood : -465.8509
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3551
-# # Bayes        2.3951
-# # Shibata      2.3549
-# # Hannan-Quinn 2.3710
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.7873  0.3749
-# # Lag[2*(p+q)+(p+q)-1][2]    0.8372  0.5542
-# # Lag[4*(p+q)+(p+q)-1][5]    1.3081  0.7869
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.6621 0.41584
-# # Lag[2*(p+q)+(p+q)-1][2]    0.9568 0.51247
-# # Lag[4*(p+q)+(p+q)-1][5]    5.8962 0.09515
-# # d.o.f=1
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[2]    0.5835 0.500 2.000 0.44493
-# # ARCH Lag[4]    6.1753 1.397 1.611 0.04536
-# # ARCH Lag[6]    9.0042 2.222 1.500 0.02398
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  1.2203
-# # Individual Statistics:
-# # omega 0.1166
-# # beta1 0.1138
-# # skew  0.1638
-# # shape 0.2466
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   1.07 1.24 1.6
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           1.5722 0.11671
-# # Negative Sign Bias  0.7206 0.47156
-# # Positive Sign Bias  0.4206 0.67427
-# # Joint Effect        7.7476 0.05153   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     32.73     0.025826
-# # 2    30     46.64     0.020251
-# # 3    40     67.87     0.002833
-# # 4    50     75.56     0.008768
-# #
-# #
-# # Elapsed time : 0.250386
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.7586971
-# # 2023-08-03 -0.3602764
-# # 2023-08-04 -0.5689387
-# # 2023-08-07  1.0906406
-# # 2023-08-08 -0.5468748
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.983372
-# # p-value  : 0.000150817
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 26.482109
-# # p-value  : 1.77616e-06
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# #   Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Come atteso, i residui standardizzati del GARCH(0,1) con distribuzione skewed GED non seguono una distribuzione normale.
-# 
-# # QQ-Plot SGED:
-# # Estrai i parametri SGED stimati
-# pars <- coef(fit)
-# 
-# # Individua i nomi rilevanti
-# shape <- pars["shape"]
-# skew  <- pars["skew"]
-# 
-# # Calcola i quantili teorici SGED
-# n <- length(z_hat)
-# sged_quantiles <- qsged(ppoints(n), mean = 0, sd = 1, nu = shape, xi = skew)
-# 
-# # Grafico
-# qqplot(sged_quantiles, sort(z_hat),
-#        main = "Q-Q Plot SGED dei residui standardizzati del modello GARCH(0,1) con distribuzione skewed GED per SPY",
-#        xlab = "Quantili teorici SGED",
-#        ylab = "Quantili empirici residui")
-# abline(0, 1, col = "blue", lwd = 2)
-# 
-# # Dal grafico vediamo che i punti risultano molto sparsi, disordinati e non seguono minimamente la retta di riferimento: questo è un segnale
-# # chiaro che i residui standardizzati NON seguono affatto la distribuzione SGED. Perciò, anche questo modello è da scartare.
-# 
-# # Analizziamo il prossimo nella classifica: GARCH(1,0) sstd
-# p <- valid_models$p[4]
-# q <- valid_models$q[4]
-# dist <- valid_models$dist[4]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model	    : sGARCH(1,0)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : sstd
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega    0.64256    0.076113  8.44219 0.000000
-# # alpha1   0.03439    0.065740  0.52312 0.600892
-# # skew     0.84630    0.057393 14.74560 0.000000
-# # shape    7.50665    3.105219  2.41743 0.015631
-# #
-# # Robust Standard Errors:
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega    0.64256    0.080825   7.9500 0.000000
-# # alpha1   0.03439    0.081706   0.4209 0.673831
-# # skew     0.84630    0.047938  17.6539 0.000000
-# # shape    7.50665    3.024080   2.4823 0.013054
-# #
-# # LogLikelihood : -467.381
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3628
-# # Bayes        2.4028
-# # Shibata      2.3626
-# # Hannan-Quinn 2.3786
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.6451  0.4219
-# # Lag[2*(p+q)+(p+q)-1][2]    0.6763  0.6163
-# # Lag[4*(p+q)+(p+q)-1][5]    1.1483  0.8253
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                    0.02651  0.8707
-# # Lag[2*(p+q)+(p+q)-1][2]   0.22872  0.8368
-# # Lag[4*(p+q)+(p+q)-1][5]   4.53198  0.1948
-# # d.o.f=1
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[2]    0.4004 0.500 2.000 0.52690
-# # ARCH Lag[4]    5.2428 1.397 1.611 0.07682
-# # ARCH Lag[6]    7.9466 2.222 1.500 0.04266
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  0.7367
-# # Individual Statistics:
-# # omega  0.09929
-# # alpha1 0.07004
-# # skew   0.05973
-# # shape  0.17895
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   1.07 1.24 1.6
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           1.6948 0.09089   *
-# # Negative Sign Bias  0.1887 0.85040
-# # Positive Sign Bias  0.1550 0.87691
-# # Joint Effect        6.9133 0.07471   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     33.93      0.01872
-# # 2    30     42.58      0.04977
-# # 3    40     57.04      0.03106
-# # 4    50     62.28      0.09641
-# #
-# #
-# # Elapsed time : 0.2489622
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.7437296
-# # 2023-08-03 -0.3406002
-# # 2023-08-04 -0.5642355
-# # 2023-08-07  1.0782306
-# # 2023-08-08 -0.5330193
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.984016
-# # p-value  : 0.000215894
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 25.384330
-# # p-value  : 3.07512e-06
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Come atteso, i residui standardizzati del GARCH(1,0) con distribuzione skewed Student-t non seguono una distribuzione normale.
-# 
-# # QQ-Plot SSTD:
-# # Estrai i parametri stimati della distribuzione sstd dal fit corrente
-# params <- coef(fit)
-# skew  <- params["skew"]
-# shape <- params["shape"]
-# 
-# # Residui standardizzati
-# z_hat_sorted <- sort(as.numeric(z_hat))
-# n <- length(z_hat_sorted)
-# 
-# # Calcola i quantili teorici della skewed Student-t
-# probs <- ppoints(n)
-# theoretical_q <- qdist("sstd", p = probs, skew = skew, shape = shape)
-# 
-# # Calcola la regressione lineare per la linea ideale
-# fit_line <- lm(z_hat_sorted ~ theoretical_q)
-# intercept <- coef(fit_line)[1]
-# slope <- coef(fit_line)[2]
-# 
-# # Calcola z-score per banda di confidenza al 99%
-# confidence_level <- 0.99
-# alpha <- 1 - confidence_level
-# z_score <- qnorm(1 - alpha / 2)
-# 
-# # Approssimazione della deviazione standard dei residui
-# se <- sd(z_hat_sorted)
-# se_band <- se * z_score / sqrt(n)
-# 
-# # Bande superiori e inferiori
-# ci_upper <- slope * theoretical_q + intercept + se_band
-# ci_lower <- slope * theoretical_q + intercept - se_band
-# 
-# # Crea data frame per ggplot
-# df_qq <- data.frame(
-#   Theoretical = theoretical_q,
-#   Observed = z_hat_sorted,
-#   CI_upper = ci_upper,
-#   CI_lower = ci_lower
-# )
-# 
-# # Q-Q Plot
-# ggplot(df_qq, aes(x = Theoretical, y = Observed)) +
-#   geom_point(aes(color = "Dati osservati"), size = 1.5) +
-#   geom_abline(aes(slope = slope, intercept = intercept, linetype = "Linea ideale"), color = "red") +
-#   geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = "Banda di confidenza al 99%"), alpha = 0.3) +
-#   scale_color_manual(name = "", values = c("Dati osservati" = "black")) +
-#   scale_linetype_manual(name = "", values = c("Linea ideale" = "dashed")) +
-#   scale_fill_manual(name = "", values = c("Banda di confidenza al 99%" = "aquamarine")) +
-#   labs(
-#     title = "Q-Q Plot skewed Student-t dei residui standardizzati con bande di confidenza",
-#     subtitle = "Modello GARCH(1,0) con distribuzione skewed Student-t per SPY",
-#     x = "Quantili teorici (skewed Student-t)",
-#     y = "Residui standardizzati"
-#   ) +
-#   theme_minimal() +
-#   theme(
-#     legend.position = "right",
-#     legend.direction = "vertical",
-#     plot.title = element_text(hjust = 0.5),
-#     plot.subtitle = element_text(hjust = 0.5)
-#   )
-# 
-# # Verifica quali residui stanno dentro le bande di confidenza
-# df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
-# 
-# # Conta quanti punti rientrano nelle bande
-# n_inside <- sum(df_qq$inside_band)
-# n_total <- nrow(df_qq)
-# percentage_inside <- round(n_inside / n_total * 100, 2)
-# 
-# # Output
-# cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
-# # Numero di punti all'interno delle bande di confidenza al 99%: 378 su 399
-# cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
-# # Percentuale di punti dentro le bande: 94.74 %
-# 
-# # Asymptotic one-sample Kolmogorov-Smirnov test
-# stats::ks.test(x=z_hat, y="psstd", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
-# #
-# #         Asymptotic one-sample Kolmogorov-Smirnov test
-# #
-# # data:  z_hat
-# # D = 0.96918, p-value < 2.2e-16
-# # alternative hypothesis: two-sided
-# 
-# # Dal Q-Q Plot vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t.
-# 
-# 
-# 
-# 
-# 
-# # Analizziamo il prossimo nella classifica: GARCH(1,1) sged
-# p <- valid_models$p[9]
-# q <- valid_models$q[9]
-# dist <- valid_models$dist[9]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model	    : sGARCH(1,1)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : sged
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega   0.070622    0.033960   2.0796 0.037563
-# # alpha1  0.071459    0.034632   2.0634 0.039077
-# # beta1   0.822016    0.066000  12.4548 0.000000
-# # skew    0.856352    0.051399  16.6607 0.000000
-# # shape   1.466952    0.164495   8.9179 0.000000
-# #
-# # Robust Standard Errors:
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega   0.070622    0.018127   3.8960 0.000098
-# # alpha1  0.071459    0.031838   2.2445 0.024802
-# # beta1   0.822016    0.030820  26.6716 0.000000
-# # skew    0.856352    0.052738  16.2378 0.000000
-# # shape   1.466952    0.199269   7.3617 0.000000
-# #
-# # LogLikelihood : -462.1746
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3417
-# # Bayes        2.3917
-# # Shibata      2.3414
-# # Hannan-Quinn 2.3615
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.2626  0.6083
-# # Lag[2*(p+q)+(p+q)-1][2]    0.2809  0.8065
-# # Lag[4*(p+q)+(p+q)-1][5]    0.7358  0.9159
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.5784  0.4470
-# # Lag[2*(p+q)+(p+q)-1][5]    1.2069  0.8113
-# # Lag[4*(p+q)+(p+q)-1][9]    2.0113  0.9037
-# # d.o.f=2
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[3]   0.02788 0.500 2.000  0.8674
-# # ARCH Lag[5]   0.45428 1.440 1.667  0.8970
-# # ARCH Lag[7]   0.89512 2.315 1.543  0.9300
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  0.9326
-# # Individual Statistics:
-# # omega  0.05294
-# # alpha1 0.07384
-# # beta1  0.04710
-# # skew   0.24851
-# # shape  0.28098
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   1.28 1.47 1.88
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           1.9846 0.04788  **
-# # Negative Sign Bias  0.6899 0.49066
-# # Positive Sign Bias  0.1336 0.89382
-# # Joint Effect        7.0881 0.06914   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     39.85     0.003427
-# # 2    30     33.86     0.244528
-# # 3    40     66.26     0.004156
-# # 4    50     68.79     0.032486
-# #
-# #
-# # Elapsed time : 0.3208668
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.8116734
-# # 2023-08-03 -0.3424681
-# # 2023-08-04 -0.5605840
-# # 2023-08-07  1.1012406
-# # 2023-08-08 -0.5462619
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.980928
-# # p-value  : 4.07243e-05
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 37.951949
-# # p-value  : 5.73904e-09
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Come atteso, i residui standardizzati del GARCH(1,1) con distribuzione skewed GED non seguono una distribuzione normale.
-# 
-# # QQ-Plot SGED:
-# # Estrai i parametri SGED stimati
-# pars <- coef(fit)
-# 
-# # Individua i nomi rilevanti
-# shape <- pars["shape"]
-# skew  <- pars["skew"]
-# 
-# # Calcola i quantili teorici SGED
-# n <- length(z_hat)
-# sged_quantiles <- qsged(ppoints(n), mean = 0, sd = 1, nu = shape, xi = skew)
-# 
-# # Grafico
-# qqplot(sged_quantiles, sort(z_hat),
-#        main = "Q-Q Plot SGED dei residui standardizzati del modello GARCH(1,1) con distribuzione skewed GED per SPY",
-#        xlab = "Quantili teorici SGED",
-#        ylab = "Quantili empirici residui")
-# abline(0, 1, col = "blue", lwd = 2)
-# 
-# # Verifica quali residui stanno dentro le bande di confidenza
-# df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
-# 
-# # Conta quanti punti rientrano nelle bande
-# n_inside <- sum(df_qq$inside_band)
-# n_total <- nrow(df_qq)
-# percentage_inside <- round(n_inside / n_total * 100, 2)
-# 
-# # Output
-# cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
-# # Numero di punti all'interno delle bande di confidenza al 99%: 378 su 399
-# cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
-# # Percentuale di punti dentro le bande: 94.74 %
-# 
-# # Asymptotic one-sample Kolmogorov-Smirnov test
-# stats::ks.test(x=z_hat, y="psged", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
-# #
-# #         Asymptotic one-sample Kolmogorov-Smirnov test
-# #
-# # data:  z_hat
-# # D = 0.96574, p-value < 2.2e-16
-# # alternative hypothesis: two-sided
-# 
-# # Analizziamo il prossimo nella classifica: GARCH(1,1) sstd
-# p <- valid_models$p[10]
-# q <- valid_models$q[10]
-# dist <- valid_models$dist[10]
-# 
-# spec <- ugarchspec(
-#   variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
-#   mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-#   distribution.model = dist
-# )
-# 
-# fit <- tryCatch(
-#   ugarchfit(spec = spec, data = returns, solver = "hybrid"),
-#   error = function(e) NULL
-# )
-# 
-# # Risultati
-# show(fit)
-# #
-# # *---------------------------------*
-# # *          GARCH Model Fit        *
-# # *---------------------------------*
-# #
-# # Conditional Variance Dynamics
-# # -----------------------------------
-# # GARCH Model	    : sGARCH(1,1)
-# # Mean Model	    : ARFIMA(0,0,0)
-# # Distribution	  : sstd
-# #
-# # Optimal Parameters
-# # ------------------------------------
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega   0.063617    0.036698   1.7335 0.083001
-# # alpha1  0.077741    0.036247   2.1448 0.031972
-# # beta1   0.831371    0.069897  11.8942 0.000000
-# # skew    0.814647    0.059038  13.7987 0.000000
-# # shape   9.320806    4.447211   2.0959 0.036093
-# #
-# # Robust Standard Errors:
-# #         Estimate  Std. Error  t value Pr(>|t|)
-# # omega   0.063617    0.024030   2.6475 0.008110
-# # alpha1  0.077741    0.032863   2.3657 0.017998
-# # beta1   0.831371    0.041246  20.1566 0.000000
-# # skew    0.814647    0.055010  14.8090 0.000000
-# # shape   9.320806    4.513771   2.0650 0.038926
-# #
-# # LogLikelihood : -462.9908
-# #
-# # Information Criteria
-# # ------------------------------------
-# #
-# # Akaike       2.3458
-# # Bayes        2.3958
-# # Shibata      2.3455
-# # Hannan-Quinn 2.3656
-# #
-# # Weighted Ljung-Box Test on Standardized Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.2449  0.6207
-# # Lag[2*(p+q)+(p+q)-1][2]    0.2713  0.8119
-# # Lag[4*(p+q)+(p+q)-1][5]    0.7398  0.9152
-# # d.o.f=0
-# # H0 : No serial correlation
-# #
-# # Weighted Ljung-Box Test on Standardized Squared Residuals
-# # ------------------------------------
-# #                         statistic p-value
-# # Lag[1]                     0.6615  0.4160
-# # Lag[2*(p+q)+(p+q)-1][5]    1.3489  0.7770
-# # Lag[4*(p+q)+(p+q)-1][9]    2.0654  0.8971
-# # d.o.f=2
-# #
-# # Weighted ARCH LM Tests
-# # ------------------------------------
-# #             Statistic Shape Scale P-Value
-# # ARCH Lag[3]  0.001476 0.500 2.000  0.9694
-# # ARCH Lag[5]  0.425038 1.440 1.667  0.9055
-# # ARCH Lag[7]  0.790184 2.315 1.543  0.9451
-# #
-# # Nyblom stability test
-# # ------------------------------------
-# # Joint Statistic:  0.8852
-# # Individual Statistics:
-# # omega  0.03252
-# # alpha1 0.04276
-# # beta1  0.02983
-# # skew   0.11576
-# # shape  0.31301
-# #
-# # Asymptotic Critical Values (10% 5% 1%)
-# # Joint Statistic:     	   1.28 1.47 1.88
-# # Individual Statistic:	   0.35 0.47 0.75
-# #
-# # Sign Bias Test
-# # ------------------------------------
-# #                    t-value    prob sig
-# # Sign Bias           2.0043 0.04573  **
-# # Negative Sign Bias  0.7683 0.44275
-# # Positive Sign Bias  0.1665 0.86786
-# # Joint Effect        7.1703 0.06666   *
-# #
-# #
-# # Adjusted Pearson Goodness-of-Fit Test:
-# # ------------------------------------
-# #   group statistic p-value(g-1)
-# # 1    20     35.44     0.012370
-# # 2    30     34.91     0.207518
-# # 3    40     65.26     0.005257
-# # 4    50     83.58     0.001513
-# #
-# #
-# # Elapsed time : 0.3861911
-# 
-# # Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
-# # (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
-# # autocorrelazione.
-# 
-# # Applichiamo, ora, i dest di normalità sui residui.
-# 
-# # Estrai residui standardizzati
-# z_hat <- residuals(fit, standardize = TRUE)
-# 
-# # Prendi le date del training_set:
-# # Rimuoviamo le righe con NA nella colonna usata per il modello
-# valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
-# 
-# # Converti in Date se non lo sono già
-# valid_dates <- as.Date(valid_dates)
-# 
-# # Sovrascrivi l’index di z_hat con le date corrette
-# index(z_hat) <- valid_dates
-# 
-# # Controlla che le lunghezze coincidano
-# if(length(z_hat) != length(valid_dates)) {
-#   stop("Errore: lunghezza residui e date non coincide!")
-# }
-# 
-# # Visualizza i primi valori
-# head(z_hat)
-# #                  [,1]
-# # 2023-08-01 -0.3598271
-# # 2023-08-02 -1.8125156
-# # 2023-08-03 -0.3399474
-# # 2023-08-04 -0.5568603
-# # 2023-08-07  1.0944984
-# # 2023-08-08 -0.5420359
-# 
-# # Esegue il test SW
-# shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Shapiro-Wilk Test
-# # Statistic: 0.980289
-# # p-value  : 2.92863e-05
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Esegue il test JB
-# jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
-# #
-# # [Residui standardizzati] Jarque-Bera Test
-# # Statistic: 41.224097
-# # p-value  : 1.11764e-09
-# #
-# # ** CONCLUSIONE: p-value <= 0.01 **
-# # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON seguono una distribuzione normale.
-# 
-# # Come atteso, i residui standardizzati del GARCH(1,1) con distribuzione skewed Student-t non seguono una distribuzione normale.
-# 
-# # QQ-Plot SSTD:
-# # Estrai i parametri stimati della distribuzione sstd dal fit corrente
-# params <- coef(fit)
-# skew  <- params["skew"]
-# shape <- params["shape"]
-# 
-# # Residui standardizzati
-# z_hat_sorted <- sort(as.numeric(z_hat))
-# n <- length(z_hat_sorted)
-# 
-# # Calcola i quantili teorici della skewed Student-t
-# probs <- ppoints(n)
-# theoretical_q <- qdist("sstd", p = probs, skew = skew, shape = shape)
-# 
-# # Calcola la regressione lineare per la linea ideale
-# fit_line <- lm(z_hat_sorted ~ theoretical_q)
-# intercept <- coef(fit_line)[1]
-# slope <- coef(fit_line)[2]
-# 
-# # Calcola z-score per banda di confidenza al 99%
-# confidence_level <- 0.99
-# alpha <- 1 - confidence_level
-# z_score <- qnorm(1 - alpha / 2)
-# 
-# # Approssimazione della deviazione standard dei residui
-# se <- sd(z_hat_sorted)
-# se_band <- se * z_score / sqrt(n)
-# 
-# # Bande superiori e inferiori
-# ci_upper <- slope * theoretical_q + intercept + se_band
-# ci_lower <- slope * theoretical_q + intercept - se_band
-# 
-# # Crea data frame per ggplot
-# df_qq <- data.frame(
-#   Theoretical = theoretical_q,
-#   Observed = z_hat_sorted,
-#   CI_upper = ci_upper,
-#   CI_lower = ci_lower
-# )
-# 
-# # Q-Q Plot
-# ggplot(df_qq, aes(x = Theoretical, y = Observed)) +
-#   geom_point(aes(color = "Dati osservati"), size = 1.5) +
-#   geom_abline(aes(slope = slope, intercept = intercept, linetype = "Linea ideale"), color = "red") +
-#   geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = "Banda di confidenza al 99%"), alpha = 0.3) +
-#   scale_color_manual(name = "", values = c("Dati osservati" = "black")) +
-#   scale_linetype_manual(name = "", values = c("Linea ideale" = "dashed")) +
-#   scale_fill_manual(name = "", values = c("Banda di confidenza al 99%" = "aquamarine")) +
-#   labs(
-#     title = "Q-Q Plot skewed Student-t dei residui standardizzati con bande di confidenza",
-#     subtitle = "Modello GARCH(1,1) con distribuzione skewed Student-t per SPY",
-#     x = "Quantili teorici (skewed Student-t)",
-#     y = "Residui standardizzati"
-#   ) +
-#   theme_minimal() +
-#   theme(
-#     legend.position = "right",
-#     legend.direction = "vertical",
-#     plot.title = element_text(hjust = 0.5),
-#     plot.subtitle = element_text(hjust = 0.5)
-#   )
-# 
-# # Verifica quali residui stanno dentro le bande di confidenza
-# df_qq$inside_band <- with(df_qq, Observed >= CI_lower & Observed <= CI_upper)
-# 
-# # Conta quanti punti rientrano nelle bande
-# n_inside <- sum(df_qq$inside_band)
-# n_total <- nrow(df_qq)
-# percentage_inside <- round(n_inside / n_total * 100, 2)
-# 
-# # Output
-# cat("Numero di punti all'interno delle bande di confidenza al 99%:", n_inside, "su", n_total, "\n")
-# # Numero di punti all'interno delle bande di confidenza al 99%: 384 su 399
-# cat("Percentuale di punti dentro le bande:", percentage_inside, "%\n")
-# # Percentuale di punti dentro le bande: 96.24 %
-# 
-# # Asymptotic one-sample Kolmogorov-Smirnov test
-# stats::ks.test(x=z_hat, y="psstd", mean=0, sd=1, nu=shape, xi=skew, alternative= "two.sided")
-# #
-# #         Asymptotic one-sample Kolmogorov-Smirnov test
-# #
-# # data:  z_hat
-# # D = 0.96564, p-value < 2.2e-16
-# # alternative hypothesis: two-sided
-# 
-# # RIFARE L'ANALISI
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# # Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
-# 
-# # Grafico dei residui
-# df_residui <- data.frame(
-#   Date = index(z_hat),
-#   Residui = as.numeric(z_hat)
-# )
-# 
-# ggplot(df_residui, aes(x = Date, y = Residui)) +
-#   geom_line(color = "steelblue", linewidth = 0.6) +
-#   geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
-#   labs(
-#     title = "Grafico dei residui standardizzati",
-#     subtitle = "Modello GARCH(1,0) con distribuzione skewed Student-t per SPY",
-#     x = "Data",
-#     y = "Residui standardizzati"
-#   ) +
-#   theme_minimal() +
-#   theme(
-#     plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-#     plot.subtitle = element_text(hjust = 0.5, size = 11),
-#     axis.title = element_text(size = 11)
-#   )
-# 
-# # KPSS Test
-# kpss_test_level <- function(data, col, alpha = 0.01) {
-#   x <- na.omit(data[[col]])
-# 
-#   # Valori critici per null = "Level"
-#   critical_values <- c(`10%` = 0.347, `5%` = 0.463, `2.5%` = 0.574, `1%` = 0.739)
-# 
-#   # Funzione per trovare la soglia più vicina
-#   get_critical <- function(cv, alpha) {
-#     key <- names(cv)[which.min(abs(as.numeric(gsub("%", "", names(cv))) / 100 - alpha))]
-#     value <- unname(cv[[key]])
-#     return(c(value = as.numeric(value), level = key))
-#   }
-# 
-#   # Funzione per stimare il p-value approssimato
-#   estimate_pvalue <- function(stat, cv) {
-#     if (stat > cv["1%"]) {
-#       return("p-value < 0.01")
-#     } else if (stat > cv["2.5%"]) {
-#       return("p-value ≈ 0.025")
-#     } else if (stat > cv["5%"]) {
-#       return("p-value ≈ 0.05")
-#     } else if (stat > cv["10%"]) {
-#       return("p-value ≈ 0.10")
-#     } else {
-#       return("p-value > 0.10")
-#     }
-#   }
-# 
-#   cat(sprintf("\n[%s] KPSS Test - Stazionarietà attorno a una media costante\n", col))
-# 
-#   result <- kpss.test(x, null = "Level")
-#   stat <- result$statistic
-#   crit <- get_critical(critical_values, alpha)
-# 
-#   pvalue_msg <- estimate_pvalue(stat, critical_values)
-# 
-#   cat(sprintf("Statistic: %f\n", stat))
-#   cat(sprintf("Valore critico (circa %s): %f\n", crit["level"], as.numeric(crit["value"])))
-#   cat(sprintf("Interpretazione del p-value: %s\n", pvalue_msg))
-# 
-#   if (stat > crit["value"]) {
-#     cat(sprintf("\n** CONCLUSIONE: Statistic > valore critico (%s) **\nPossiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati NON sono stazionari.\n\n", crit["level"], alpha * 100))
-#   } else {
-#     cat(sprintf("\n** CONCLUSIONE: Statistic <= valore critico (%s) **\nNon possiamo rigettare l'ipotesi nulla con un livello di significatività del %d%%\n→ I dati SONO stazionari.\n\n", crit["level"], alpha * 100))
-#   }
-# }
-# 
-# kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
-# #
-# # [Residui] KPSS Test - Stazionarietà attorno a una media costante
-# # Statistic: 0.103813
-# # Valore critico (circa 1%): 0.739000
-# # Interpretazione del p-value: p-value > 0.10
-# #
-# # ** CONCLUSIONE: Statistic <= valore critico (1%) **
-# # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati SONO stazionari.
-# 
-# # Quindi, i residui standardizzati sono stazionari.
-# 
-# # Breusch-Pagan Test:
-# # Calcola i residui al quadrato
-# df_residui$Residui_Sq <- df_residui$Residui^2
-# 
-# # Crea un indice temporale (può essere anche un numero progressivo)
-# df_residui$Index <- seq_along(df_residui$Residui)
-# 
-# # Esegui il test BP
-# breusch_pagan_test(
-#   index = df_residui$Index,
-#   group = df_residui$Residui_Sq,
-#   col = "Residui standardizzati"
-# )
-# # [Residui standardizzati] Breusch-Pagan Test
-# # Statistic: 3.612974
-# # p-value: 0.0573305
-# #
-# # ** Conclusione: p-value > 0.01 **
-# # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON sono eteroschedastici.
-# 
-# # White Test
-# white_test(
-#   index = df_residui$Index,
-#   group = df_residui$Residui_Sq,
-#   col = "Residui standardizzati"
-# )
-# # [Residui standardizzati] White Test
-# # Statistic: 3.613709
-# # p-value: 0.16417
-# #
-# # ** Conclusione: p-value > 0.01 **
-# # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# # → I dati NON sono eteroschedastici.
-# 
-# # Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità.
-# 
-# # Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
-# # di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
-# 
-# # ACF
-# plot_acf_residuals <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)) {
-# 
-#   x <- data[[col]]
-#   x <- na.omit(x)
-#   n <- length(x)
-# 
-#   if (is.null(max_lag)) {
-#     max_lag <- min(10, floor(n / 4))  # Hyndman
-#   }
-# 
-#   # Calcolo ACF (escludendo lag 0, che è sempre 1)
-#   acf_res <- acf(x, lag.max = max_lag, plot = FALSE)
-#   acf_vals <- acf_res$acf[-1]
-#   lags <- 1:length(acf_vals)
-# 
-#   # Calcolo intervalli di confidenza per i livelli dati
-#   ci_vals <- sapply(ci_levels, function(level) qnorm((1 + level) / 2) / sqrt(n))
-#   names(ci_vals) <- paste0(ci_levels * 100, "%")
-# 
-#   # Dataframe ACF
-#   df <- data.frame(lag = lags, acf = acf_vals)
-# 
-#   # Dataframe intervalli di confidenza per ggplot (sia + che -)
-#   ci_df <- do.call(rbind, lapply(names(ci_vals), function(name) {
-#     data.frame(
-#       ci_level = name,
-#       y = c(ci_vals[name], -ci_vals[name])
-#     )
-#   }))
-# 
-#   ci_df$ci_level <- factor(ci_df$ci_level, levels = c("90%", "95%", "99%"))
-# 
-#   ci_colors <- c("90%" = "green", "95%" = "blue", "99%" = "red")
-#   ci_linetypes <- c("90%" = "dotted", "95%" = "dashed", "99%" = "dotdash")
-# 
-#   p <- ggplot(df, aes(x = lag, y = acf)) +
-#     geom_segment(aes(x = lag, xend = lag, y = 0, yend = acf), color = "black") +
-#     geom_point(shape = 18, size = 3, color = "black") +
-#     theme_minimal() +
-#     geom_hline(data = ci_df, aes(yintercept = y, color = ci_level, linetype = ci_level), size = 1.1) +
-#     scale_color_manual(name = "Confidence Interval", values = ci_colors) +
-#     scale_linetype_manual(name = "Confidence Interval", values = ci_linetypes) +
-#     labs(title = "ACF dei Residui Standardizzati", x = "Lag", y = "ACF Value") +
-#     theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#           plot.title = element_text(hjust = 0.5)
-#     )
-# 
-#   print(p)
-# }
-# 
-# df_z <- data.frame(z_hat = as.numeric(z_hat))
-# plot_acf_residuals(df_z, col = "z_hat")
-# 
-# # PACF
-# plot_pacf_residuals <- function(data, col, max_lag = NULL, ci_levels = c(0.90, 0.95, 0.99)) {
-# 
-#   x <- data[[col]]
-#   x <- na.omit(x)
-#   n <- length(x)
-# 
-#   if (is.null(max_lag)) {
-#     max_lag <- min(10, floor(n / 4))  # Hyndman
-#   }
-# 
-#   # Calcolo PACF (rimuovo lag 0, che è sempre 1)
-#   pacf_res <- pacf(x, lag.max = max_lag, plot = FALSE)
-#   pacf_vals <- pacf_res$acf
-#   lags <- 1:length(pacf_vals)
-# 
-#   # Intervalli di confidenza per i livelli dati
-#   ci_vals <- sapply(ci_levels, function(level) qnorm((1 + level) / 2) / sqrt(n))
-#   names(ci_vals) <- paste0(ci_levels * 100, "%")
-# 
-#   # Dataframe PACF
-#   df <- data.frame(lag = lags, pacf = pacf_vals)
-# 
-#   # Dataframe intervalli di confidenza per ggplot (+ e -)
-#   ci_df <- do.call(rbind, lapply(names(ci_vals), function(name) {
-#     data.frame(
-#       ci_level = name,
-#       y = c(ci_vals[name], -ci_vals[name])
-#     )
-#   }))
-#   ci_df$ci_level <- factor(ci_df$ci_level, levels = c("90%", "95%", "99%"))
-# 
-#   # Palette e linee
-#   ci_colors <- c("90%" = "green", "95%" = "blue", "99%" = "red")
-#   ci_linetypes <- c("90%" = "dotted", "95%" = "dashed", "99%" = "dotdash")
-# 
-#   p <- ggplot(df, aes(x = lag, y = pacf)) +
-#     geom_segment(aes(x = lag, xend = lag, y = 0, yend = pacf), color = "black") +
-#     geom_point(shape = 18, size = 3, color = "black") +
-#     theme_minimal() +
-#     geom_hline(data = ci_df, aes(yintercept = y, color = ci_level, linetype = ci_level), size = 1.1) +
-#     scale_color_manual(name = "Confidence Interval", values = ci_colors) +
-#     scale_linetype_manual(name = "Confidence Interval", values = ci_linetypes) +
-#     labs(title = "PACF dei Residui Standardizzati", x = "Lag", y = "PACF Value") +
-#     theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#           plot.title = element_text(hjust = 0.5)
-#     )
-# 
-#   print(p)
-# }
-# 
-# plot_pacf_residuals(df_z, col = "z_hat")
-# 
-# # L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
-# # Dunque, non c'è una forte evidenza visiva di autocorrelazione.
-# 
-# # Ljung-Box Test
-# ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
-# # Ljung-Box test per Residui standardizzati (max_lag = 10):
-# #            lag   lb_stat lb_pvalue
-# # X-squared    1 0.6450903 0.4218735
-# # X-squared1   2 0.7075932 0.7020177
-# # X-squared2   3 0.8887092 0.8281517
-# # X-squared3   4 0.9057814 0.9237299
-# # X-squared4   5 2.5941968 0.7622468
-# # X-squared5   6 2.6429612 0.8521375
-# # X-squared6   7 3.6290162 0.8213773
-# # X-squared7   8 3.6795752 0.8848149
-# # X-squared8   9 3.7601410 0.9264784
-# # X-squared9  10 5.3052993 0.8698732
-# 
-# # Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
-# # sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
-# 
-# # Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+# Analizziamo il prossimo nella classifica: GARCH(3,1) sged
+p <- valid_models$p[22]
+q <- valid_models$q[22]
+dist <- valid_models$dist[22]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   0.098638    0.039715   2.4837 0.013004
+# alpha1  0.047265    0.031163   1.5167 0.129335
+# alpha2  0.000000    0.015255   0.0000 1.000000
+# alpha3  0.153984    0.059555   2.5856 0.009722
+# beta1   0.695453    0.070487   9.8664 0.000000
+# skew    0.856695    0.059504  14.3972 0.000000
+# shape   1.274538    0.118682  10.7391 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega   0.098638    0.029525  3.340814 0.000835
+# alpha1  0.047265    0.024857  1.901500 0.057237
+# alpha2  0.000000    0.003745  0.000001 0.999999
+# alpha3  0.153984    0.053868  2.858573 0.004256
+# beta1   0.695453    0.050689 13.719893 0.000000
+# skew    0.856695    0.088035  9.731353 0.000000
+# shape   1.274538    0.172360  7.394623 0.000000
+# 
+# LogLikelihood : -595.6967 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       2.5430
+# Bayes        2.6045
+# Shibata      2.5426
+# Hannan-Quinn 2.5672
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.1156  0.7339
+# Lag[2*(p+q)+(p+q)-1][2]    0.1575  0.8810
+# Lag[4*(p+q)+(p+q)-1][5]    0.5557  0.9488
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic  p-value
+# Lag[1]                       6.999 0.008156
+# Lag[2*(p+q)+(p+q)-1][11]    13.709 0.016347
+# Lag[4*(p+q)+(p+q)-1][19]    15.935 0.068905
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.1439 0.500 2.000  0.7044
+# ARCH Lag[7]    0.3118 1.473 1.746  0.9454
+# ARCH Lag[9]    0.9218 2.402 1.619  0.9417
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.688
+# Individual Statistics:              
+# omega  0.09843
+# alpha1 0.15357
+# alpha2 0.28165
+# alpha3 0.20164
+# beta1  0.10072
+# skew   0.30929
+# shape  0.46689
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           1.0452 0.2964    
+# Negative Sign Bias  1.8482 0.0652   *
+# Positive Sign Bias  0.1211 0.9037    
+# Joint Effect       10.0916 0.0178  **
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     26.76     0.110381
+# 2    30     50.30     0.008374
+# 3    40     51.91     0.080861
+# 4    50     64.61     0.066738
+# 
+# 
+# Elapsed time : 0.3509951 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Applichiamo, ora, dei dest di normalità sui residui.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$SPY_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2715260
+# 2023-08-02 -1.3272829
+# 2023-08-03 -0.2719337
+# 2023-08-04 -0.4805232
+# 2023-08-07  0.8565601
+# 2023-08-08 -0.4691642
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.963842
+# p-value  : 2.10109e-09
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 166.703118
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(3,1) con distribuzione skewed GED non seguono una distribuzione normale.
+
+# QQ-Plot SGED:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SGED_xi <- params["skew"]
+SGED_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed GED
+distr <- "sged"
+distr_pars <- list(mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Quantili teorici
+quants <- qsged(ppoints(n), mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsged(quart_probs, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(3,1) model for SPY (skewed GED)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SGED parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", shape = ", .(round(SGED_nu, 3)), 
+                                 ", skew = ", .(round(SGED_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SGED)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) + 
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (SGED)
+dens <- dsged(quants, mean = mean, sd = sd, nu = SGED_nu, xi = SGED_xi)
+
+# Probabilità associate ai quantili
+p <- ppoints(n)
+
+# Errore standard dei quantili teorici
+SE <- sqrt(p * (1 - p) / (n * dens^2))
+
+# Limiti di confidenza al 95%
+alpha_95 <- 0.05
+z_95 <- qnorm(1 - alpha_95 / 2)
+lower_95 <- quants - z_95 * SE
+upper_95 <- quants + z_95 * SE
+
+# Percentuale di punti dentro la banda 95%
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+percent_inside_95 <- mean(inside_95) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 98.31%
+
+# Limiti di confidenza al 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90 / 2)
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Percentuale di punti dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+percent_inside_90 <- mean(inside_90) * 100
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 88.82%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psged(q, mean=0, sd=1, nu=SGED_nu, xi=SGED_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.048893, p-value = 0.2072
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed GED con un livello
+# di significatività del 5% (in realtà il test di K-S risulta anche al 10%).
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità (non condizionata).
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(3,1) con distribuzione skewed GED per SPY",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.140033
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Breusch-Pagan Test:
+# Calcola i residui al quadrato
+df_residui$Residui_Sq <- df_residui$Residui^2
+
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 6.443224
+# p-value: 0.0111376
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui_Sq,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 7.424023
+# p-value: 0.0244283
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.1155779 0.7338810
+# X-squared1   2 0.1995161 0.9050564
+# X-squared2   3 0.7854043 0.8529549
+# X-squared3   4 0.7977541 0.9387489
+# X-squared4   5 0.8801423 0.9716426
+# X-squared5   6 1.7135620 0.9440695
+# X-squared6   7 2.2546535 0.9444128
+# X-squared7   8 2.2738442 0.9714446
+# X-squared8   9 2.7686357 0.9727659
+# X-squared9  10 2.7936315 0.9858720
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat arch_pvalue
+# statistic    1  7.798265 0.005229643
+# statistic1   2  9.883236 0.007143031
+# statistic2   3 10.240157 0.016631241
+# statistic3   4 16.358222 0.002574292
+# statistic4   5 16.346225 0.005922059
+
+# Alla luce dei risultati, per i lag 1, 2, 4 e 5 il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(3,1) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui (anche) a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 
 # # Test ARCH di Engle
 # arch_effects_test(z_hat, col_name = "Residui Standardizzati")
