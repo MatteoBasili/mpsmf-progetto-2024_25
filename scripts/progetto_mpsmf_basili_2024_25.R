@@ -6127,12 +6127,12 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 8.607082
+# p-value: 0.00334858
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
 # White Test
 white_test(
@@ -6141,61 +6141,15 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 11.455848
+# p-value: 0.00325383
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
-# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
-
-# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
-# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
-
-# ACF
-df_z <- data.frame(z_hat = as.numeric(z_hat))
-plot_acf_residuals(df_z, col = "z_hat")
-
-# PACF
-plot_pacf_residuals(df_z, col = "z_hat")
-
-# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
-# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
-
-# Ljung-Box Test
-ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
-# Ljung-Box test per Residui standardizzati (max_lag = 10):
-#            lag   lb_stat lb_pvalue
-# X-squared    1 0.1029470 0.7483214
-# X-squared1   2 0.5154687 0.7728005
-# X-squared2   3 1.4551953 0.6926492
-# X-squared3   4 1.7418879 0.7830953
-# X-squared4   5 1.8375635 0.8711336
-# X-squared5   6 3.6376138 0.7255798
-# X-squared6   7 3.7417083 0.8090004
-# X-squared7   8 3.8009982 0.8746169
-# X-squared8   9 4.0634297 0.9071883
-# X-squared9  10 4.0685634 0.9442010
-
-# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
-# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
-
-# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
-
-# Test ARCH di Engle
-arch_effects_test(z_hat, col_name = "Residui Standardizzati")
-# ARCH Test per Residui Standardizzati (max_lag = 5):
-#            lag arch_stat  arch_pvalue
-# statistic    1  4.924266 2.648205e-02
-# statistic1   2  5.837069 5.401278e-02
-# statistic2   3  5.876704 1.177654e-01
-# statistic3   4 30.648272 3.611124e-06
-# statistic4   5 30.702562 1.072290e-05
-
-# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
-# Questo suggerisce che il modello GARCH(3,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
-# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Dai risultati dei test possiamo rigettare l'ipotesi nulla di omoschedasticità incondizionata con un livello di significatività dell'1%. Quindi,
+# c'è evidenza statistica di eteroschedasticità non condizionata.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
 # Analizziamo il prossimo nella classifica: GARCH(3,1) sstd
@@ -6582,8 +6536,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 4.391529
+# p-value: 0.0361179
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -6596,45 +6550,14 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 5.455633
+# p-value: 0.0653619
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON sono eteroschedastici.
 
 # Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
-
-# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente se i residui sono omoschedastici oppure no tramite
-# un grafico a dispersione nel tempo.
-
-# DataFrame con residui e date
-df_resid <- data.frame(
-  Date = index(z_hat),
-  Residuals = as.numeric(z_hat)
-)
-
-# Scatterplot dei residui nel tempo
-ggplot(df_resid, aes(x = Date, y = Residuals)) +
-  geom_point(alpha = 0.6, color = "darkgreen") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  labs(
-    title = "Residui Standardizzati nel Tempo",
-    subtitle = "Modello GARCH(3,1) con distribuzione skewed Student-t per SPY",
-    x = "Data",
-    y = "Residui Standardizzati"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-    plot.subtitle = element_text(hjust = 0.5, size = 11)
-  )
-
-# Visto che il grafico non mostra schemi evidenti (e.g. forma a cono), questo è un ottimo segno che l'ipotesi di omoschedasticità (non condizionata)
-# potrebbe essere valida. Infatti, i residui distribuiti in questo modo casuale indicano che la varianza degli errori è costante,
-# in linea con quanto suggerito da White.
-# Dunque, il grafico rafforza l'idea che i residui siano omoschedastici e conferma l'omoschedasticità di White a un livello di significatività
-# dell'1%.
 
 # Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
 # di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
@@ -7060,8 +6983,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 3.851028
+# p-value: 0.0497155
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -7074,8 +6997,8 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 4.674606
+# p-value: 0.0965878
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -7508,12 +7431,12 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 6.837421
+# p-value: 0.00892676
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
 # White Test
 white_test(
@@ -7522,61 +7445,15 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 10.623561
+# p-value: 0.00493314
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
-# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
-
-# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
-# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
-
-# ACF
-df_z <- data.frame(z_hat = as.numeric(z_hat))
-plot_acf_residuals(df_z, col = "z_hat")
-
-# PACF
-plot_pacf_residuals(df_z, col = "z_hat")
-
-# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, una barra supera la banda di confidenza al 95% ma non al 99%.
-# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
-
-# Ljung-Box Test
-ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
-# Ljung-Box test per Residui standardizzati (max_lag = 10):
-#            lag   lb_stat  lb_pvalue
-# X-squared    1  1.454986 0.22772957
-# X-squared1   2  4.170374 0.12428388
-# X-squared2   3  9.299621 0.02556144
-# X-squared3   4 10.625233 0.03111497
-# X-squared4   5 10.626362 0.05931257
-# X-squared5   6 11.162726 0.08347551
-# X-squared6   7 11.241387 0.12843094
-# X-squared7   8 11.403628 0.17986079
-# X-squared8   9 11.475540 0.24451503
-# X-squared9  10 11.591983 0.31329094
-
-# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
-# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
-
-# Infine, verifichiamo anche l’assenza di eteroschedasticità condizionata nei residui standardizzati.
-
-# Test ARCH di Engle
-arch_effects_test(z_hat, col_name = "Residui Standardizzati")
-# ARCH Test per Residui Standardizzati (max_lag = 5):
-#            lag arch_stat  arch_pvalue
-# statistic    1  26.30319 2.918068e-07
-# statistic1   2  27.19728 1.242182e-06
-# statistic2   3  69.04815 6.824314e-15
-# statistic3   4  75.77816 1.363987e-15
-# statistic4   5  75.86246 6.146030e-15
-
-# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
-# Questo suggerisce che il modello GARCH(0,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
-# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Dai risultati dei test possiamo rigettare l'ipotesi nulla di omoschedasticità incondizionata con un livello di significatività dell'1%. Quindi,
+# c'è evidenza statistica di eteroschedasticità non condizionata.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
 # Analizziamo il prossimo nella classifica: GARCH(2,1) norm
@@ -8302,8 +8179,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 4.914765
+# p-value: 0.0266281
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -8316,8 +8193,8 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 6.088743
+# p-value: 0.0476262
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -8756,8 +8633,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 4.744518
+# p-value: 0.0293918
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -8770,8 +8647,8 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 5.833679
+# p-value: 0.0541044
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -9203,8 +9080,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 3.936780
+# p-value: 0.0472411
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -9217,8 +9094,8 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 4.667341
+# p-value: 0.0969393
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -9650,8 +9527,8 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 3.767055
+# p-value: 0.0522716
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -9664,8 +9541,8 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 4.421627
+# p-value: 0.109611
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
@@ -10270,12 +10147,12 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 7.104960
+# p-value: 0.0076871
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
 # White Test
 white_test(
@@ -10284,17 +10161,15 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 9.190087
+# p-value: 0.0101018
 # 
 # ** Conclusione: p-value > 0.01 **
 # Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON sono eteroschedastici.
 
-# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
-
-# Andiamo a vedere anche graficamente se i residui sono omoschedastici oppure no tramite
-# un grafico a dispersione nel tempo.
+# Visto che i due test ci forniscono risultati contrastanti, riandiamo a vedere graficamente i residui per vedere se possiamo trarre delle
+# conclusioni (questa volta con uno scatterplot).
 
 # DataFrame con residui e date
 df_resid <- data.frame(
@@ -10318,7 +10193,7 @@ ggplot(df_resid, aes(x = Date, y = Residuals)) +
     plot.subtitle = element_text(hjust = 0.5, size = 11)
   )
 
-# Infatti, dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
+# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
 # statistica (non fortissima) di eteroschedasticità non condizionata.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
@@ -10705,12 +10580,12 @@ breusch_pagan_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] Breusch-Pagan Test
-# Statistic: 6.014190
-# p-value: 0.0141913
+# Statistic: 7.660452
+# p-value: 0.00564444
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
 # White Test
 white_test(
@@ -10719,45 +10594,18 @@ white_test(
   col = "Residui standardizzati"
 )
 # [Residui standardizzati] White Test
-# Statistic: 7.427377
-# p-value: 0.0243874
+# Statistic: 10.034218
+# p-value: 0.00662365
 # 
-# ** Conclusione: p-value > 0.01 **
-# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
-# → I dati NON sono eteroschedastici.
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
 
-# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
-
-# Andiamo a vedere anche graficamente se i residui sono omoschedastici oppure no tramite
-# un grafico a dispersione nel tempo.
-
-# DataFrame con residui e date
-df_resid <- data.frame(
-  Date = index(z_hat),
-  Residuals = as.numeric(z_hat)
-)
-
-# Scatterplot dei residui nel tempo
-ggplot(df_resid, aes(x = Date, y = Residuals)) +
-  geom_point(alpha = 0.6, color = "darkgreen") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  labs(
-    title = "Residui Standardizzati nel Tempo",
-    subtitle = "Modello GARCH(4,0) con distribuzione skewed Student-t per SPY",
-    x = "Data",
-    y = "Residui Standardizzati"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-    plot.subtitle = element_text(hjust = 0.5, size = 11)
-  )
-
-# Infatti, dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
-# statistica (non fortissima) di eteroschedasticità non condizionata.
+# Dai risultati dei test possiamo rigettare l'ipotesi nulla di omoschedasticità incondizionata con un livello di significatività dell'1%. Quindi,
+# c'è evidenza statistica di eteroschedasticità non condizionata.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
-# CONTINUARE COL 24
+# CONTINUARE COL 24!!!
 
 
 
