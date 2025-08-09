@@ -10194,7 +10194,7 @@ ggplot(df_resid, aes(x = Date, y = Residuals)) +
   )
 
 # Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
-# statistica (non fortissima) di eteroschedasticità non condizionata.
+# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
 # Perciò, possiamo concludere che anche questo modello è da scartare.
 
 # Analizziamo il prossimo nella classifica: GARCH(4,0) sstd
