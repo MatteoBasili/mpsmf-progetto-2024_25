@@ -1276,7 +1276,7 @@ ljungbox_test(training_set[["SPY_LogReturn"]], col_name = "SPY_LogReturn")
 
 # Osservando i p-value del test di Ljung-Box sui rendimenti logaritmici di SPY fino al lag 10,
 # notiamo che l’ipotesi nulla di assenza di autocorrelazione viene rifiutata per alcuni lag intermedi
-# (ad esempio, lag 3–7, dove p-value < 0.10). Ciò indica la presenza di autocorrelazione residua nei rendimenti.
+# (lag 3 e 4, dove p-value < 0.01). Ciò indica la presenza di autocorrelazione residua nei rendimenti.
 
 # Tuttavia, il test di Ljung-Box misura l'autocorrelazione nei rendimenti, non nella loro varianza.
 # Per valutare la presenza di autocorrelazione condizionata nella volatilità (cluster di volatilità),
@@ -13077,4 +13077,3547 @@ best_valid_dist <- valid_models$dist[31]
 
 cat(sprintf("Modello valido migliore (secondo il criterio AICc + BIC): GARCH(%d,%d) con distribuzione %s\n", best_valid_p, best_valid_q, best_valid_dist))
 # Modello valido migliore (secondo il criterio AICc + BIC): GARCH(4,1) con distribuzione sged
+##################################################################################################################################################
+
+################################################### Analisi della Volatilità di AAPL tramite Modello GARCH ##################################
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test
+adf_test_all(training_set, "AAPL_AdjClose")
+# 
+# [AAPL_AdjClose] ADF Test - Senza Intercetta
+# Statistic: -0.096998
+# p-value  : 0.649811
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AAPL_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -1.595973
+# p-value  : 0.483848
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AAPL_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -1.957498
+# p-value  : 0.622406
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "AAPL_AdjClose")
+# 
+# [AAPL_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 4.844916
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AAPL_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.797471
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
+adf_test_all(training_set, "AAPL_LogReturn")
+# 
+# [AAPL_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -13.677306
+# p-value  : 2.97737e-28
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AAPL_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -13.663230
+# p-value  : 2.73535e-27
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AAPL_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -13.651487
+# p-value  : 3.92316e-29
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "AAPL_LogReturn")
+# 
+# [AAPL_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.087704
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AAPL_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.082093
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie AAPL_LogReturn
+kurt_value <- kurtosis(training_set$AAPL_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 14.8274
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$AAPL_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$AAPL_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "AAPL_LogReturn")
+# [AAPL_LogReturn] Breusch-Pagan Test
+# Statistic: 8.891289
+# p-value: 0.00286534
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "AAPL_LogReturn")
+# [AAPL_LogReturn] White Test
+# Statistic: 12.346344
+# p-value: 0.00208461
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo AAPL.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["AAPL_LogReturn"]], col_name = "AAPL_LogReturn")
+# Ljung-Box test per AAPL_LogReturn (max_lag = 10):
+#            lag   lb_stat  lb_pvalue
+# X-squared    1  0.626536 0.42862879
+# X-squared1   2  4.964292 0.08356372
+# X-squared2   3  7.676838 0.05318466
+# X-squared3   4  9.566887 0.04839087
+# X-squared4   5 12.968073 0.02367980
+# X-squared5   6 12.970345 0.04350930
+# X-squared6   7 13.913169 0.05274746
+# X-squared7   8 13.940614 0.08332647
+# X-squared8   9 14.335059 0.11089577
+# X-squared9  10 15.289106 0.12187167
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "AAPL_LogReturn")
+
+# PACF
+plot_pacf(training_set, "AAPL_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che solo una barra supera le bande di confidenza al 95%, ma non al 99%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["AAPL_LogReturn"]], col_name = "AAPL_LogReturn")
+# ARCH Test per AAPL_LogReturn (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  25.76115 3.863880e-07
+# statistic1   2  27.25549 1.206551e-06
+# statistic2   3  44.09451 1.441004e-09
+# statistic3   4  69.74440 2.570128e-14
+# statistic4   5  71.49114 5.014039e-14
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività dell'1% per tutti i lag.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dell’AAPL
+# presenti nel training set.
+
+
+# Utilizziamo, dunque, il modello GARCH per stimare la volatilità dei ritorni logaritmici,
+# esplorando diverse configurazioni di parametri (p, q) con p, q ∈ {0,...,4}, escludendo il caso p = q = 0.
+# Per ciascuna configurazione, stimiamo il modello con diverse distribuzioni per le innovazioni:
+# - normale ("norm")
+# - skewed Student-t ("sstd")
+# - skewed GED ("sged")
+#
+# Consideriamo solo i modelli per cui la stima converge.
+# Tra questi, ordiniamo i modelli secondo i criteri informativi AICc e BIC, ignorando la log-likelihood (già incorporata in essi).
+# 
+# A partire dai modelli ordinati, selezioniamo il primo che soddisfa le seguenti condizioni sui residui standardizzati:
+#  - assenza di autocorrelazione (verificata tramite test Ljung-Box, autocorrelogramma e autocorrelogramma parziale),
+#  - coerenza con la distribuzione ipotizzata (tramite test di normalità quali SW, JB e QQ-Plot e test di Kolmogorov-Smirnov),
+#  - verifica di stazionarietà e omoschedasticità non condizionata (tramite grafici e test quali KPSS, Breusch-Pagan e White),
+#  - assenza di eteroschedasticità condizionata (tramite test ARCH di Engle).
+#
+# Questo approccio consente di selezionare un modello GARCH che bilancia qualità dell’adattamento,
+# parsimonia e correttezza statistica dei residui.
+# La libreria utilizzata per la stima è 'rugarch'.
+
+# Serie dei rendimenti logaritmici
+returns <- na.omit(training_set$AAPL_LogReturn)
+
+# Distribuzioni per le innovazioni
+distributions <- c("norm", "sstd", "sged")
+
+# Data frame per salvare i risultati
+model_results <- data.frame(
+  p = integer(),
+  q = integer(),
+  dist = character(),
+  converged = logical(),
+  hessian_ok = logical(),
+  AIC = numeric(),
+  AICc = numeric(),
+  BIC = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Loop su p e q in {0,1,2,3,4} escluso p = 0, q = 0
+for (p in 0:4) {
+  for (q in 0:4) {
+    if (p == 0 && q == 0) next  # evita GARCH(0,0)
+    for (dist in distributions) {
+      spec <- ugarchspec(
+        variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+        mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+        distribution.model = dist
+      )
+      
+      tryCatch({
+        fit <- ugarchfit(spec, data = returns, solver = "hybrid")
+        info_criteria <- infocriteria(fit)
+        loglik <- likelihood(fit)
+        n <- length(returns)
+        k <- length(coef(fit))
+        AIC <- as.numeric(info_criteria[1])  # Akaike
+        BIC <- as.numeric(info_criteria[2])  # Bayes
+        AICc <- AIC + (2 * k^2 + 2 * k) / (n - k - 1)
+        
+        # Controlla se l'Hessiano è invertito correttamente
+        hessian_ok <- all(!is.na(fit@fit$se.coef))
+        
+        model_results <- rbind(model_results, data.frame(
+          p = p,
+          q = q,
+          dist = dist,
+          converged = fit@fit$convergence == 0,
+          hessian_ok = hessian_ok,
+          AIC = AIC,
+          AICc = AICc,
+          BIC = BIC
+        ))
+      }, error = function(e) {
+        message(sprintf("Errore per GARCH(%d,%d) - %s: %s", p, q, dist, e$message))
+      })
+    }
+  }
+}
+
+# Ordina per AICc + BIC solo i modelli che:
+# - convergono
+# - hanno invertito l’Hessiano correttamente
+valid_models <- model_results %>% 
+  filter(converged == TRUE, hessian_ok == TRUE) %>%
+  arrange(AICc + BIC)
+
+# Stampa i modelli validi ordinati
+print(valid_models)
+#    p q dist converged hessian_ok       AIC      AICc       BIC
+# 1  1 0 sstd      TRUE       TRUE  3.636547  3.721835  3.671662
+# 2  1 1 sstd      TRUE       TRUE  3.637479  3.765684  3.681374
+# 3  2 0 sstd      TRUE       TRUE  3.639527  3.767732  3.683421
+# 4  1 1 sged      TRUE       TRUE  3.650707  3.778912  3.694601
+# 5  0 1 sstd      TRUE       TRUE  3.678572  3.763860  3.713688
+# 6  1 2 sstd      TRUE       TRUE  3.637352  3.817223  3.690025
+# 7  2 1 sstd      TRUE       TRUE  3.641427  3.821299  3.694101
+# 8  3 0 sstd      TRUE       TRUE  3.643237  3.823108  3.695910
+# 9  1 2 sged      TRUE       TRUE  3.650274  3.830145  3.702947
+# 10 0 2 sstd      TRUE       TRUE  3.682163  3.810368  3.726058
+# 11 2 1 sged      TRUE       TRUE  3.654617  3.834489  3.707291
+# 12 1 3 sstd      TRUE       TRUE  3.635074  3.875417  3.696526
+# 13 4 0 sstd      TRUE       TRUE  3.640598  3.880941  3.702050
+# 14 2 2 sstd      TRUE       TRUE  3.641571  3.881915  3.703024
+# 15 3 1 sstd      TRUE       TRUE  3.645581  3.885924  3.707033
+# 16 1 3 sged      TRUE       TRUE  3.645714  3.886057  3.707166
+# 17 0 3 sstd      TRUE       TRUE  3.686134  3.866005  3.738807
+# 18 2 2 sged      TRUE       TRUE  3.654493  3.894836  3.715946
+# 19 3 1 sged      TRUE       TRUE  3.658689  3.899032  3.720141
+# 20 1 4 sstd      TRUE       TRUE  3.638411  3.948089  3.708642
+# 21 2 3 sstd      TRUE       TRUE  3.639293  3.948971  3.709525
+# 22 4 1 sstd      TRUE       TRUE  3.643634  3.953312  3.713865
+# 23 3 2 sstd      TRUE       TRUE  3.645810  3.955488  3.716041
+# 24 1 0 norm      TRUE       TRUE  3.814417  3.839895  3.831975
+# 25 1 1 norm      TRUE       TRUE  3.799031  3.850095  3.825368
+# 26 1 4 sged      TRUE       TRUE  3.648903  3.958580  3.719134
+# 27 2 3 sged      TRUE       TRUE  3.649933  3.959611  3.720164
+# 28 0 4 sstd      TRUE       TRUE  3.690250  3.930593  3.751702
+# 29 4 1 sged      TRUE       TRUE  3.652779  3.962457  3.723010
+# 30 3 2 sged      TRUE       TRUE  3.658724  3.968402  3.728956
+# 31 1 2 norm      TRUE       TRUE  3.795113  3.880401  3.830229
+# 32 2 0 norm      TRUE       TRUE  3.818670  3.869734  3.845007
+# 33 1 3 norm      TRUE       TRUE  3.776116  3.904321  3.820010
+# 34 2 1 norm      TRUE       TRUE  3.802681  3.887969  3.837797
+# 35 4 0 norm      TRUE       TRUE  3.776990  3.905195  3.820884
+# 36 3 0 norm      TRUE       TRUE  3.805518  3.890806  3.840634
+# 37 2 4 sstd      TRUE       TRUE  3.642630  4.030562  3.721641
+# 38 3 3 sstd      TRUE       TRUE  3.643513  4.031444  3.722523
+# 39 4 2 sstd      TRUE       TRUE  3.643843  4.031774  3.722854
+# 40 4 2 sged      TRUE       TRUE  3.651744  4.039675  3.730754
+# 41 2 2 norm      TRUE       TRUE  3.799333  3.927538  3.843227
+# 42 2 4 sged      TRUE       TRUE  3.653122  4.041053  3.732132
+# 43 3 3 sged      TRUE       TRUE  3.654152  4.042084  3.733163
+# 44 3 1 norm      TRUE       TRUE  3.806725  3.934930  3.850620
+# 45 1 4 norm      TRUE       TRUE  3.778020  3.957891  3.830693
+# 46 2 3 norm      TRUE       TRUE  3.780335  3.960207  3.833009
+# 47 3 2 norm      TRUE       TRUE  3.803535  3.983406  3.856208
+# 48 4 1 norm      TRUE       TRUE  3.810263  3.990135  3.862937
+# 49 4 3 sstd      TRUE       TRUE  3.646751  4.121913  3.734540
+# 50 3 4 sstd      TRUE       TRUE  3.646850  4.122012  3.734639
+# 51 4 2 norm      TRUE       TRUE  3.778471  4.018815  3.839924
+# 52 2 4 norm      TRUE       TRUE  3.782239  4.022582  3.843691
+# 53 3 3 norm      TRUE       TRUE  3.784554  4.024898  3.846007
+# 54 4 3 sged      TRUE       TRUE  3.655919  4.131081  3.743708
+# 55 3 4 sged      TRUE       TRUE  3.657341  4.132503  3.745131
+# 56 4 3 norm      TRUE       TRUE  3.786458  4.096136  3.856690
+# 57 3 4 norm      TRUE       TRUE  3.786458  4.096136  3.856690
+# 58 0 1 norm      TRUE       TRUE  3.956754  3.982232  3.974312
+# 59 4 4 sstd      TRUE       TRUE  3.650970  4.222399  3.747538
+# 60 4 4 sged      TRUE       TRUE  3.660138  4.231567  3.756707
+# 61 0 2 norm      TRUE       TRUE  3.959325  4.010389  3.985662
+# 62 0 3 norm      TRUE       TRUE  3.962925  4.048213  3.998040
+# 63 4 4 norm      TRUE       TRUE  3.790678  4.178609  3.869688
+# 64 0 4 norm      TRUE       TRUE  3.966756  4.094962  4.010651
+# 65 0 2 sged      TRUE       TRUE  7.252374  7.380579  7.296268
+# 66 0 1 sged      TRUE       TRUE 10.941144 11.026432 10.976260
+# 67 4 0 sged      TRUE       TRUE 45.683620 45.923964 45.745073
+# 68 3 0 sged      TRUE       TRUE 57.634579 57.814450 57.687252
+
+# N.B.: Teniamo presente che p rappresenta il GARCH order (indice beta) e q l'ARCH order (indice alfa).
+
+# Analizziamo il primo modello: GARCH(1,0) sstd
+p <- valid_models$p[1]
+q <- valid_models$q[1]
+dist <- valid_models$dist[1]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    2.19721    0.393646   5.5817 0.000000
+# alpha1   0.31317    0.115333   2.7153 0.006621
+# skew     0.86152    0.044704  19.2717 0.000000
+# shape    3.64742    0.656229   5.5581 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    2.19721    0.342393   6.4172 0.000000
+# alpha1   0.31317    0.146106   2.1434 0.032079
+# skew     0.86152    0.046375  18.5773 0.000000
+# shape    3.64742    0.623874   5.8464 0.000000
+# 
+# LogLikelihood : -857.8616 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6365
+# Bayes        3.6717
+# Shibata      3.6364
+# Hannan-Quinn 3.6504
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      0.454  0.5004
+# Lag[2*(p+q)+(p+q)-1][2]     1.466  0.3689
+# Lag[4*(p+q)+(p+q)-1][5]     3.310  0.3533
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic  p-value
+# Lag[1]                  1.653e-04 0.989743
+# Lag[2*(p+q)+(p+q)-1][2] 1.357e-01 0.895284
+# Lag[4*(p+q)+(p+q)-1][5] 1.243e+01 0.002145
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[2]    0.2688 0.500 2.000 6.041e-01
+# ARCH Lag[4]   15.3431 1.397 1.611 2.093e-04
+# ARCH Lag[6]   20.4577 2.222 1.500 2.846e-05
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.0976
+# Individual Statistics:              
+# omega  0.39588
+# alpha1 0.64981
+# skew   0.08836
+# shape  0.17214
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.9124 0.3620    
+# Negative Sign Bias  1.1801 0.2386    
+# Positive Sign Bias  0.8391 0.4018    
+# Joint Effect        2.1050 0.5509    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     12.41       0.8672
+# 2    30     23.47       0.7547
+# 3    40     37.05       0.5589
+# 4    50     34.23       0.9459
+# 
+# 
+# Elapsed time : 0.2423341
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -1.0396613
+# 2023-08-03 -0.4270921
+# 2023-08-04 -3.1990939
+# 2023-08-07 -0.5564957
+# 2023-08-08  0.2986864
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag    arch_stat  arch_pvalue
+# statistic    1 7.253403e-05 9.932047e-01
+# statistic1   2 2.655323e-01 8.756699e-01
+# statistic2   3 7.859751e-01 8.528186e-01
+# statistic3   4 3.063834e+01 3.627990e-06
+# statistic4   5 3.056548e+01 1.141161e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,1) sstd
+p <- valid_models$p[2]
+q <- valid_models$q[2]
+dist <- valid_models$dist[2]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.50575    0.384377   1.3158 0.188257
+# alpha1   0.10977    0.065852   1.6669 0.095541
+# beta1    0.71750    0.176490   4.0654 0.000048
+# skew     0.85623    0.045534  18.8042 0.000000
+# shape    3.80362    0.689179   5.5191 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.50575    0.453793   1.1145  0.26507
+# alpha1   0.10977    0.089839   1.2218  0.22178
+# beta1    0.71750    0.208800   3.4363  0.00059
+# skew     0.85623    0.048560  17.6324  0.00000
+# shape    3.80362    0.641432   5.9299  0.00000
+# 
+# LogLikelihood : -857.0825 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6375
+# Bayes        3.6814
+# Shibata      3.6373
+# Hannan-Quinn 3.6547
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.562  0.2114
+# Lag[2*(p+q)+(p+q)-1][2]     2.342  0.2119
+# Lag[4*(p+q)+(p+q)-1][5]     3.689  0.2955
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic  p-value
+# Lag[1]                      0.870 0.350948
+# Lag[2*(p+q)+(p+q)-1][5]     8.351 0.024099
+# Lag[4*(p+q)+(p+q)-1][9]    13.227 0.009451
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]  0.001848 0.500 2.000 0.9657067
+# ARCH Lag[5] 13.529393 1.440 1.667 0.0008892
+# ARCH Lag[7] 14.719038 2.315 1.543 0.0013538
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.7903
+# Individual Statistics:              
+# omega  0.27955
+# alpha1 0.42047
+# beta1  0.29982
+# skew   0.08483
+# shape  0.10326
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           0.9857 0.32480    
+# Negative Sign Bias  1.7578 0.07944   *
+# Positive Sign Bias  0.3250 0.74536    
+# Joint Effect        3.2074 0.36074    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     15.45       0.6935
+# 2    30     17.65       0.9512
+# 3    40     30.81       0.8224
+# 4    50     33.81       0.9516
+# 
+# 
+# Elapsed time : 0.2181261 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.9425263
+# 2023-08-03 -0.4438058
+# 2023-08-04 -3.0925613
+# 2023-08-07 -0.7798470
+# 2023-08-08  0.2522122
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.8698545 0.350995595
+# statistic1   2  1.7734669 0.411999363
+# statistic2   3  1.7947246 0.616083587
+# statistic3   4 18.4191556 0.001021737
+# statistic4   5 19.5323786 0.001529043
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,0) sstd
+p <- valid_models$p[3]
+q <- valid_models$q[3]
+dist <- valid_models$dist[3]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   2.152306    0.383583  5.61106 0.000000
+# alpha1  0.290401    0.115635  2.51136 0.012027
+# alpha2  0.026644    0.047146  0.56513 0.571984
+# skew    0.861732    0.044845 19.21568 0.000000
+# shape   3.665488    0.649842  5.64058 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   2.152306    0.331365  6.49527 0.000000
+# alpha1  0.290401    0.122935  2.36222 0.018166
+# alpha2  0.026644    0.043452  0.61318 0.539761
+# skew    0.861732    0.046690 18.45648 0.000000
+# shape   3.665488    0.612623  5.98327 0.000000
+# 
+# LogLikelihood : -857.5679 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6395
+# Bayes        3.6834
+# Shibata      3.6393
+# Hannan-Quinn 3.6568
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.5028  0.4783
+# Lag[2*(p+q)+(p+q)-1][2]    1.3853  0.3885
+# Lag[4*(p+q)+(p+q)-1][5]    3.0975  0.3895
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                  1.227e-04 0.9911613
+# Lag[2*(p+q)+(p+q)-1][5] 1.280e+01 0.0017097
+# Lag[4*(p+q)+(p+q)-1][9] 2.169e+01 0.0000732
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]    0.2551 0.500 2.000 6.135e-01
+# ARCH Lag[5]   24.4270 1.440 1.667 1.633e-06
+# ARCH Lag[7]   26.3347 2.315 1.543 1.476e-06
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.243
+# Individual Statistics:              
+# omega  0.39034
+# alpha1 0.55235
+# alpha2 0.51896
+# skew   0.09403
+# shape  0.16254
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.9112 0.3627    
+# Negative Sign Bias  1.1750 0.2406    
+# Positive Sign Bias  0.7991 0.4246    
+# Joint Effect        2.0237 0.5675    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     12.84       0.8469
+# 2    30     26.13       0.6187
+# 3    40     36.89       0.5667
+# 4    50     43.51       0.6945
+# 
+# 
+# Elapsed time : 0.223963 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4341518
+# 2023-08-04 -3.1938788
+# 2023-08-07 -0.5738245
+# 2023-08-08  0.2762641
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag    arch_stat  arch_pvalue
+# statistic    1 3.242072e-05 9.954569e-01
+# statistic1   2 5.023298e-01 7.778941e-01
+# statistic2   3 7.652749e-01 8.577535e-01
+# statistic3   4 3.125650e+01 2.713832e-06
+# statistic4   5 3.117679e+01 8.643662e-06
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,1) sged
+p <- valid_models$p[4]
+q <- valid_models$q[4]
+dist <- valid_models$dist[4]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.42856    0.074279   5.7696    0e+00
+# alpha1   0.10490    0.021175   4.9539    1e-06
+# beta1    0.73324    0.036589  20.0396    0e+00
+# skew     0.86936    0.026481  32.8300    0e+00
+# shape    1.06748    0.080364  13.2830    0e+00
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.42856    0.028792  14.8850        0
+# alpha1   0.10490    0.014236   7.3684        0
+# beta1    0.73324    0.019033  38.5236        0
+# skew     0.86936    0.021305  40.8054        0
+# shape    1.06748    0.080722  13.2242        0
+# 
+# LogLikelihood : -860.2175 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6507
+# Bayes        3.6946
+# Shibata      3.6505
+# Hannan-Quinn 3.6680
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.514  0.2185
+# Lag[2*(p+q)+(p+q)-1][2]     2.264  0.2225
+# Lag[4*(p+q)+(p+q)-1][5]     3.562  0.3139
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.8116 0.36765
+# Lag[2*(p+q)+(p+q)-1][5]    7.7389 0.03420
+# Lag[4*(p+q)+(p+q)-1][9]   12.2661 0.01577
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale  P-Value
+# ARCH Lag[3] 1.598e-04 0.500 2.000 0.989914
+# ARCH Lag[5] 1.239e+01 1.440 1.667 0.001704
+# ARCH Lag[7] 1.353e+01 2.315 1.543 0.002652
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.7428
+# Individual Statistics:              
+# omega  0.28008
+# alpha1 0.38860
+# beta1  0.31303
+# skew   0.04301
+# shape  0.14069
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           0.9455 0.34490    
+# Negative Sign Bias  1.6673 0.09612   *
+# Positive Sign Bias  0.3338 0.73866    
+# Joint Effect        2.9023 0.40693    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     14.95       0.7261
+# 2    30     20.56       0.8748
+# 3    40     28.28       0.8979
+# 4    50     35.70       0.9221
+# 
+# 
+# Elapsed time : 0.2690032 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.9476254
+# 2023-08-03 -0.4493689
+# 2023-08-04 -3.1465407
+# 2023-08-07 -0.7975224
+# 2023-08-08  0.2573267
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.8108571 0.367866961
+# statistic1   2  1.7494805 0.416970306
+# statistic2   3  1.7594836 0.623791195
+# statistic3   4 16.8880070 0.002032226
+# statistic4   5 18.0478379 0.002887044
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,1) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(0,1) sstd
+p <- valid_models$p[5]
+q <- valid_models$q[5]
+dist <- valid_models$dist[5]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(0,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#        Estimate  Std. Error  t value Pr(>|t|)
+# omega  0.008729    0.005947   1.4678  0.14216
+# beta1  0.999000    0.001271 786.2305  0.00000
+# skew   0.868827    0.041004  21.1891  0.00000
+# shape  2.766778    0.234241  11.8117  0.00000
+# 
+# Robust Standard Errors:
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.008729    0.003775    2.3122 0.020767
+# beta1  0.999000    0.000983 1016.7315 0.000000
+# skew   0.868827    0.044651   19.4581 0.000000
+# shape  2.766778    0.254696   10.8631 0.000000
+# 
+# LogLikelihood : -867.8216 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6786
+# Bayes        3.7137
+# Shibata      3.6784
+# Hannan-Quinn 3.6924
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.035 0.30909
+# Lag[2*(p+q)+(p+q)-1][2]     2.838 0.15528
+# Lag[4*(p+q)+(p+q)-1][5]     6.182 0.08148
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                      22.84 1.763e-06
+# Lag[2*(p+q)+(p+q)-1][2]     24.99 2.187e-07
+# Lag[4*(p+q)+(p+q)-1][5]     54.46 3.331e-15
+# d.o.f=1
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[2]     4.262 0.500 2.000 3.897e-02
+# ARCH Lag[4]    38.716 1.397 1.611 1.479e-10
+# ARCH Lag[6]    47.777 2.222 1.500 9.406e-13
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  3.7888
+# Individual Statistics:             
+# omega 0.43278
+# beta1 0.37800
+# skew  0.08157
+# shape 0.16751
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.07 1.24 1.6
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value      prob sig
+# Sign Bias            2.071 3.886e-02  **
+# Negative Sign Bias   6.679 6.840e-11 ***
+# Positive Sign Bias   1.229 2.197e-01    
+# Joint Effect        47.733 2.427e-10 ***
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     14.95       0.7261
+# 2    30     20.94       0.8614
+# 3    40     26.08       0.9437
+# 4    50     45.20       0.6280
+# 
+# 
+# Elapsed time : 0.150764 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8872015
+# 2023-08-03 -0.4172427
+# 2023-08-04 -2.7916440
+# 2023-08-07 -0.9864236
+# 2023-08-08  0.2999824
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  22.80392 1.793998e-06
+# statistic1   2  23.85045 6.621248e-06
+# statistic2   3  38.14956 2.627727e-08
+# statistic3   4  62.64211 8.070960e-13
+# statistic4   5  64.35329 1.526226e-12
+
+# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(0,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,2) sstd
+p <- valid_models$p[6]
+q <- valid_models$q[6]
+dist <- valid_models$dist[6]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.70615    0.472083   1.4958 0.134704
+# alpha1   0.15506    0.080122   1.9353 0.052949
+# beta1    0.26426    0.233751   1.1305 0.258264
+# beta2    0.33671    0.200541   1.6790 0.093153
+# skew     0.85735    0.045685  18.7666 0.000000
+# shape    3.85886    0.706332   5.4632 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.70615    0.488027   1.4469 0.147914
+# alpha1   0.15506    0.096226   1.6115 0.107081
+# beta1    0.26426    0.143297   1.8441 0.065167
+# beta2    0.33671    0.128268   2.6250 0.008664
+# skew     0.85735    0.048479  17.6851 0.000000
+# shape    3.85886    0.645591   5.9773 0.000000
+# 
+# LogLikelihood : -856.0524 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6374
+# Bayes        3.6900
+# Shibata      3.6370
+# Hannan-Quinn 3.6581
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.185  0.2763
+# Lag[2*(p+q)+(p+q)-1][2]     1.954  0.2706
+# Lag[4*(p+q)+(p+q)-1][5]     3.243  0.3644
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                      0.2356 0.62740
+# Lag[2*(p+q)+(p+q)-1][8]    12.1214 0.01120
+# Lag[4*(p+q)+(p+q)-1][14]   15.6134 0.01878
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     17.34 0.500 2.000 3.121e-05
+# ARCH Lag[6]     17.77 1.461 1.711 1.069e-04
+# ARCH Lag[8]     18.09 2.368 1.583 2.831e-04
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.8471
+# Individual Statistics:              
+# omega  0.27959
+# alpha1 0.42541
+# beta1  0.29474
+# beta2  0.30036
+# skew   0.08494
+# shape  0.09930
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.9333 0.3512    
+# Negative Sign Bias  1.4138 0.1581    
+# Positive Sign Bias  0.5099 0.6104    
+# Joint Effect        2.2605 0.5201    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     12.84       0.8469
+# 2    30     16.25       0.9726
+# 3    40     30.64       0.8282
+# 4    50     29.80       0.9862
+# 
+# 
+# Elapsed time : 0.285651
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4284733
+# 2023-08-04 -3.0473952
+# 2023-08-07 -0.7023345
+# 2023-08-08  0.2762838
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.2386629 0.625173504
+# statistic1   2  0.8453247 0.655299846
+# statistic2   3  0.8514643 0.837121901
+# statistic3   4 18.2683226 0.001093634
+# statistic4   5 19.1384150 0.001811295
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,1) sstd
+p <- valid_models$p[7]
+q <- valid_models$q[7]
+dist <- valid_models$dist[7]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.51642    0.518567  0.99586 0.319318
+# alpha1   0.11191    0.067318  1.66239 0.096434
+# alpha2   0.00000    0.090534  0.00000 1.000000
+# beta1    0.71122    0.246953  2.87998 0.003977
+# skew     0.85660    0.045599 18.78543 0.000000
+# shape    3.81104    0.741469  5.13985 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.51642    0.733758   0.7038 0.481556
+# alpha1   0.11191    0.078923   1.4180 0.156205
+# alpha2   0.00000    0.104782   0.0000 1.000000
+# beta1    0.71122    0.356351   1.9958 0.045952
+# skew     0.85660    0.048678  17.5973 0.000000
+# shape    3.81104    0.801613   4.7542 0.000002
+# 
+# LogLikelihood : -857.0183 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6414
+# Bayes        3.6941
+# Shibata      3.6411
+# Hannan-Quinn 3.6621
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.517  0.2180
+# Lag[2*(p+q)+(p+q)-1][2]     2.282  0.2199
+# Lag[4*(p+q)+(p+q)-1][5]     3.632  0.3037
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic  p-value
+# Lag[1]                      0.8264 0.363316
+# Lag[2*(p+q)+(p+q)-1][8]    12.4438 0.009387
+# Lag[4*(p+q)+(p+q)-1][14]   15.8007 0.017192
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     16.63 0.500 2.000 4.554e-05
+# ARCH Lag[6]     16.99 1.461 1.711 1.655e-04
+# ARCH Lag[8]     17.29 2.368 1.583 4.423e-04
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  2.1501
+# Individual Statistics:              
+# omega  0.28914
+# alpha1 0.42540
+# alpha2 0.73785
+# beta1  0.31411
+# skew   0.08517
+# shape  0.10423
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value    prob sig
+# Sign Bias           0.9965 0.31952    
+# Negative Sign Bias  1.7368 0.08309   *
+# Positive Sign Bias  0.3368 0.73639    
+# Joint Effect        3.1374 0.37092    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     15.37       0.6990
+# 2    30     18.03       0.9438
+# 3    40     35.03       0.6516
+# 4    50     34.86       0.9364
+# 
+# 
+# Elapsed time : 0.1986358
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4251719
+# 2023-08-04 -2.9941064
+# 2023-08-07 -0.7670886
+# 2023-08-08  0.2492722
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.8276859 0.362942519
+# statistic1   2  1.7504509 0.416768057
+# statistic2   3  1.7688039 0.621746960
+# statistic3   4 18.3547988 0.001051824
+# statistic4   5 19.4309176 0.001597304
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,1) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(3,0) sstd
+p <- valid_models$p[8]
+q <- valid_models$q[8]
+dist <- valid_models$dist[8]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(3,0)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   2.144064    0.387664  5.53072 0.000000
+# alpha1  0.269445    0.119408  2.25651 0.024039
+# alpha2  0.018535    0.045207  0.41000 0.681805
+# alpha3  0.025052    0.054489  0.45977 0.645685
+# skew    0.860972    0.045012 19.12766 0.000000
+# shape   3.671196    0.660474  5.55843 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega   2.144064    0.334292  6.41374 0.000000
+# alpha1  0.269445    0.109492  2.46086 0.013861
+# alpha2  0.018535    0.032764  0.56572 0.571587
+# alpha3  0.025052    0.052473  0.47743 0.633055
+# skew    0.860972    0.047286 18.20758 0.000000
+# shape   3.671196    0.610237  6.01601 0.000000
+# 
+# LogLikelihood : -857.4471 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6432
+# Bayes        3.6959
+# Shibata      3.6429
+# Hannan-Quinn 3.6640
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                     0.6186  0.4316
+# Lag[2*(p+q)+(p+q)-1][2]    1.5353  0.3529
+# Lag[4*(p+q)+(p+q)-1][5]    3.3219  0.3514
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic   p-value
+# Lag[1]                   6.433e-04 0.9797650
+# Lag[2*(p+q)+(p+q)-1][8]  1.770e+01 0.0004607
+# Lag[4*(p+q)+(p+q)-1][14] 2.400e+01 0.0002475
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     27.00 0.500 2.000 2.030e-07
+# ARCH Lag[6]     27.19 1.461 1.711 5.222e-07
+# ARCH Lag[8]     27.33 2.368 1.583 1.395e-06
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.1841
+# Individual Statistics:              
+# omega  0.37709
+# alpha1 0.50010
+# alpha2 0.45332
+# alpha3 0.39114
+# skew   0.09017
+# shape  0.16880
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.9050 0.3659    
+# Negative Sign Bias  1.1557 0.2484    
+# Positive Sign Bias  0.7777 0.4371    
+# Joint Effect        1.9429 0.5843    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     12.33       0.8711
+# 2    30     17.39       0.9557
+# 3    40     29.63       0.8606
+# 4    50     38.66       0.8555
+# 
+# 
+# Elapsed time : 0.2397859 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4180029
+# 2023-08-04 -3.2174928
+# 2023-08-07 -0.5887006
+# 2023-08-08  0.2863536
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag    arch_stat  arch_pvalue
+# statistic    1 3.909736e-04 9.842244e-01
+# statistic1   2 4.597235e-01 7.946435e-01
+# statistic2   3 5.176203e-01 9.150036e-01
+# statistic3   4 2.781113e+01 1.362190e-05
+# statistic4   5 2.772814e+01 4.113412e-05
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(3,0) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,2) sged
+p <- valid_models$p[9]
+q <- valid_models$q[9]
+dist <- valid_models$dist[9]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.58258    0.107395   5.4247        0
+# alpha1   0.14938    0.028085   5.3187        0
+# beta1    0.26334    0.037343   7.0518        0
+# beta2    0.36652    0.041753   8.7782        0
+# skew     0.86916    0.025182  34.5150        0
+# shape    1.07502    0.081644  13.1671        0
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.58258    0.047959  12.1475        0
+# alpha1   0.14938    0.018262   8.1797        0
+# beta1    0.26334    0.008467  31.1026        0
+# beta2    0.36652    0.014204  25.8037        0
+# skew     0.86916    0.018804  46.2224        0
+# shape    1.07502    0.082314  13.0600        0
+# 
+# LogLikelihood : -859.1149 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6503
+# Bayes        3.7029
+# Shibata      3.6500
+# Hannan-Quinn 3.6710
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.137  0.2863
+# Lag[2*(p+q)+(p+q)-1][2]     1.864  0.2864
+# Lag[4*(p+q)+(p+q)-1][5]     3.085  0.3918
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                      0.2011 0.65383
+# Lag[2*(p+q)+(p+q)-1][8]    11.1299 0.01916
+# Lag[4*(p+q)+(p+q)-1][14]   14.4117 0.03270
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     15.69 0.500 2.000 7.452e-05
+# ARCH Lag[6]     16.19 1.461 1.711 2.584e-04
+# ARCH Lag[8]     16.57 2.368 1.583 6.623e-04
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  0.815
+# Individual Statistics:              
+# omega  0.28060
+# alpha1 0.37327
+# beta1  0.30151
+# beta2  0.30907
+# skew   0.04095
+# shape  0.14982
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.8843 0.3770    
+# Negative Sign Bias  1.3104 0.1907    
+# Positive Sign Bias  0.5208 0.6028    
+# Joint Effect        1.9900 0.5745    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     14.02       0.7827
+# 2    30     19.67       0.9029
+# 3    40     37.56       0.5355
+# 4    50     29.38       0.9882
+# 
+# 
+# Elapsed time : 0.3446171 
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4320224
+# 2023-08-04 -3.0769636
+# 2023-08-07 -0.7144644
+# 2023-08-08  0.2817555
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.2036831 0.651764253
+# statistic1   2  0.8220255 0.662978486
+# statistic2   3  0.8375045 0.840476994
+# statistic3   4 16.5648871 0.002347701
+# statistic4   5 17.5125562 0.003623634
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(1,2) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(0,2) sstd
+p <- valid_models$p[10]
+q <- valid_models$q[10]
+dist <- valid_models$dist[10]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(0,2)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#        Estimate  Std. Error   t value Pr(>|t|)
+# omega  0.013600    0.013252    1.0263  0.30477
+# beta1  0.011012    0.001840    5.9834  0.00000
+# beta2  0.987988    0.000355 2783.1484  0.00000
+# skew   0.868946    0.040868   21.2620  0.00000
+# shape  2.766347    0.223660   12.3685  0.00000
+# 
+# Robust Standard Errors:
+#        Estimate  Std. Error  t value Pr(>|t|)
+# omega  0.013600    0.012641   1.0758    0.282
+# beta1  0.011012    0.000586  18.8051    0.000
+# beta2  0.987988    0.001017 971.2138    0.000
+# skew   0.868946    0.044157  19.6787    0.000
+# shape  2.766347    0.271265  10.1979    0.000
+# 
+# LogLikelihood : -867.6727 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6822
+# Bayes        3.7261
+# Shibata      3.6819
+# Hannan-Quinn 3.6994
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.055 0.30438
+# Lag[2*(p+q)+(p+q)-1][2]     2.830 0.15606
+# Lag[4*(p+q)+(p+q)-1][5]     6.117 0.08441
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                         statistic   p-value
+# Lag[1]                      22.62 1.978e-06
+# Lag[2*(p+q)+(p+q)-1][5]     53.78 5.218e-15
+# Lag[4*(p+q)+(p+q)-1][9]     69.00 0.000e+00
+# d.o.f=2
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[3]     18.72 0.500 2.000 1.516e-05
+# ARCH Lag[5]     51.49 1.440 1.667 1.982e-13
+# ARCH Lag[7]     53.97 2.315 1.543 6.062e-14
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  3.9817
+# Individual Statistics:             
+# omega 0.40989
+# beta1 0.36016
+# beta2 0.36011
+# skew  0.08176
+# shape 0.15696
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.28 1.47 1.88
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value      prob sig
+# Sign Bias            2.057 4.021e-02  **
+# Negative Sign Bias   6.658 7.802e-11 ***
+# Positive Sign Bias   1.232 2.186e-01    
+# Joint Effect        47.464 2.769e-10 ***
+#   
+#   
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     14.52       0.7524
+# 2    30     23.34       0.7607
+# 3    40     28.78       0.8848
+# 4    50     46.25       0.5852
+# 
+# 
+# Elapsed time : 0.1018949  
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4172940
+# 2023-08-04 -2.7944662
+# 2023-08-07 -0.9866631
+# 2023-08-08  0.3003147
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  22.58992 2.005345e-06
+# statistic1   2  23.60481 7.486522e-06
+# statistic2   3  37.71498 3.247737e-08
+# statistic3   4  62.07110 1.064298e-12
+# statistic4   5  63.78120 2.005435e-12
+
+# Alla luce dei risultati, a partire dal lag 1, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(0,2) con distribuzione skewed Student-t non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(2,1) sged
+p <- valid_models$p[11]
+q <- valid_models$q[11]
+dist <- valid_models$dist[11]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(2,1)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sged 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.42847    0.072609   5.9011        0
+# alpha1   0.10590    0.020831   5.0836        0
+# alpha2   0.00000    0.004947   0.0000        1
+# beta1    0.73210    0.036288  20.1746        0
+# skew     0.86932    0.026377  32.9571        0
+# shape    1.06832    0.080046  13.3464        0
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error   t value Pr(>|t|)
+# omega    0.42847    0.027366 15.657331        0
+# alpha1   0.10590    0.013108  8.078503        0
+# alpha2   0.00000    0.000500  0.000001        1
+# beta1    0.73210    0.019294 37.944965        0
+# skew     0.86932    0.021049 41.299611        0
+# shape    1.06832    0.079928 13.366028        0
+# 
+# LogLikelihood : -860.1443 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6546
+# Bayes        3.7073
+# Shibata      3.6543
+# Hannan-Quinn 3.6753
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      1.475  0.2245
+# Lag[2*(p+q)+(p+q)-1][2]     2.209  0.2303
+# Lag[4*(p+q)+(p+q)-1][5]     3.506  0.3223
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                      0.7985 0.37153
+# Lag[2*(p+q)+(p+q)-1][8]    11.5242 0.01550
+# Lag[4*(p+q)+(p+q)-1][14]   14.6867 0.02886
+# d.o.f=3
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale   P-Value
+# ARCH Lag[4]     15.08 0.500 2.000 0.0001028
+# ARCH Lag[6]     15.52 1.461 1.711 0.0003771
+# ARCH Lag[8]     15.86 2.368 1.583 0.0009779
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  2.0803
+# Individual Statistics:              
+# omega  0.28490
+# alpha1 0.38879
+# alpha2 0.66977
+# beta1  0.32288
+# skew   0.04082
+# shape  0.14287
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.49 1.68 2.12
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.9572 0.3389    
+# Negative Sign Bias  1.6574 0.0981   *
+# Positive Sign Bias  0.3399 0.7341    
+# Joint Effect        2.8699 0.4121    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     15.28       0.7045
+# 2    30     20.18       0.8873
+# 3    40     28.11       0.9021
+# 4    50     35.92       0.9182
+# 
+# 
+# Elapsed time : 0.3128209  
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4279065
+# 2023-08-04 -3.0260151
+# 2023-08-07 -0.7839175
+# 2023-08-08  0.2537712
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag  arch_stat arch_pvalue
+# statistic    1  0.7990013 0.371392145
+# statistic1   2  1.7514582 0.416558190
+# statistic2   3  1.7603052 0.623610823
+# statistic3   4 16.7830217 0.002129848
+# statistic4   5 17.9259343 0.003040676
+
+# Alla luce dei risultati, a partire dal lag 4, il test ARCH rivela evidenza significativa di eteroschedasticità residua, con p-value < 1%.
+# Questo suggerisce che il modello GARCH(2,1) con distribuzione skewed GED non ha catturato completamente la dinamica della varianza
+# condizionata, e che potrebbero essere presenti effetti ARCH residui a orizzonti più lunghi.
+# Perciò, possiamo concludere che anche questo modello è da scartare.
+
+# Analizziamo il prossimo nella classifica: GARCH(1,3) sstd
+p <- valid_models$p[12]
+q <- valid_models$q[12]
+dist <- valid_models$dist[12]
+
+spec <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(p, q)),
+  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+  distribution.model = dist
+)
+
+fit <- tryCatch(
+  ugarchfit(spec = spec, data = returns, solver = "hybrid"),
+  error = function(e) NULL
+)
+
+# Risultati
+show(fit)
+# 
+# *---------------------------------*
+# *          GARCH Model Fit        *
+# *---------------------------------*
+#   
+# Conditional Variance Dynamics 	
+# -----------------------------------
+# GARCH Model	    : sGARCH(1,3)
+# Mean Model	    : ARFIMA(0,0,0)
+# Distribution	  : sstd 
+# 
+# Optimal Parameters
+# ------------------------------------
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.67731    0.399936   1.6936 0.090350
+# alpha1   0.19656    0.082509   2.3822 0.017208
+# beta1    0.00000    0.248449   0.0000 1.000000
+# beta2    0.21559    0.180805   1.1924 0.233099
+# beta3    0.35523    0.212064   1.6751 0.093914
+# skew     0.85496    0.045824  18.6574 0.000000
+# shape    3.96531    0.756920   5.2387 0.000000
+# 
+# Robust Standard Errors:
+#         Estimate  Std. Error  t value Pr(>|t|)
+# omega    0.67731    0.453902   1.4922 0.135645
+# alpha1   0.19656    0.097054   2.0252 0.042844
+# beta1    0.00000    0.325318   0.0000 1.000000
+# beta2    0.21559    0.176235   1.2233 0.221203
+# beta3    0.35523    0.293262   1.2113 0.225780
+# skew     0.85496    0.048171  17.7484 0.000000
+# shape    3.96531    0.690490   5.7428 0.000000
+# 
+# LogLikelihood : -854.5125 
+# 
+# Information Criteria
+# ------------------------------------
+#   
+# Akaike       3.6351
+# Bayes        3.6965
+# Shibata      3.6346
+# Hannan-Quinn 3.6592
+# 
+# Weighted Ljung-Box Test on Standardized Residuals
+# ------------------------------------
+#                         statistic p-value
+# Lag[1]                      0.972  0.3242
+# Lag[2*(p+q)+(p+q)-1][2]     1.809  0.2966
+# Lag[4*(p+q)+(p+q)-1][5]     3.054  0.3972
+# d.o.f=0
+# H0 : No serial correlation
+# 
+# Weighted Ljung-Box Test on Standardized Squared Residuals
+# ------------------------------------
+#                          statistic p-value
+# Lag[1]                     0.06729  0.7953
+# Lag[2*(p+q)+(p+q)-1][11]   9.36617  0.1244
+# Lag[4*(p+q)+(p+q)-1][19]  12.00841  0.2637
+# d.o.f=4
+# 
+# Weighted ARCH LM Tests
+# ------------------------------------
+#             Statistic Shape Scale P-Value
+# ARCH Lag[5]    0.6264 0.500 2.000  0.4287
+# ARCH Lag[7]    1.1386 1.473 1.746  0.7188
+# ARCH Lag[9]    1.3036 2.402 1.619  0.8855
+# 
+# Nyblom stability test
+# ------------------------------------
+# Joint Statistic:  1.5728
+# Individual Statistics:              
+# omega  0.26785
+# alpha1 0.28186
+# beta1  0.32675
+# beta2  0.29678
+# beta3  0.18206
+# skew   0.07524
+# shape  0.08516
+# 
+# Asymptotic Critical Values (10% 5% 1%)
+# Joint Statistic:     	   1.69 1.9 2.35
+# Individual Statistic:	   0.35 0.47 0.75
+# 
+# Sign Bias Test
+# ------------------------------------
+#                    t-value   prob sig
+# Sign Bias           0.8022 0.4229    
+# Negative Sign Bias  1.0943 0.2744    
+# Positive Sign Bias  0.6283 0.5301    
+# Joint Effect        1.5955 0.6604    
+# 
+# 
+# Adjusted Pearson Goodness-of-Fit Test:
+# ------------------------------------
+#   group statistic p-value(g-1)
+# 1    20     11.23       0.9158
+# 2    30     16.63       0.9676
+# 3    40     31.32       0.8045
+# 4    50     36.55       0.9057
+# 
+# 
+# Elapsed time : 0.2406271  
+
+# Analizzando i p-value del test pesato di Ljung-Box sui residui standardizzati, osserviamo che questi sono tutti maggiori di α = 0.01
+# (in realtà anche di α = 0.05 e α = 0.10). Quindi, non abbiamo evidenza statistica sufficiente per rifiutare l’ipotesi nulla di assenza di
+# autocorrelazione.
+
+# Estrai residui standardizzati
+z_hat <- residuals(fit, standardize = TRUE)
+
+# Prendi le date del training_set:
+# Rimuoviamo le righe con NA nella colonna usata per il modello
+valid_dates <- training_set$Date[!is.na(training_set$AAPL_LogReturn)]
+
+# Converti in Date se non lo sono già
+valid_dates <- as.Date(valid_dates)
+
+# Sovrascrivi l’index di z_hat con le date corrette
+index(z_hat) <- valid_dates
+
+# Controlla che le lunghezze coincidano
+if(length(z_hat) != length(valid_dates)) {
+  stop("Errore: lunghezza residui e date non coincide!")
+}
+
+# Visualizza i primi valori
+head(z_hat)
+#                  [,1]
+# 2023-08-01 -0.2437526
+# 2023-08-02 -0.8880104
+# 2023-08-03 -0.4180029
+# 2023-08-04 -3.0831592
+# 2023-08-07 -0.6485545
+# 2023-08-08  0.3100310
+
+# Verifichiamo l’assenza di eteroschedasticità condizionata nei residui standardizzati.
+
+# Test ARCH di Engle
+arch_effects_test(z_hat, col_name = "Residui Standardizzati")
+# ARCH Test per Residui Standardizzati (max_lag = 5):
+#            lag   arch_stat arch_pvalue
+# statistic    1  0.06706187  0.79566373
+# statistic1   2  0.36522789  0.83308971
+# statistic2   3  0.39092279  0.94211118
+# statistic3   4 11.40077724  0.02241056
+# statistic4   5 12.17480167  0.03246953
+
+# Alla luce dei risultati, non possiamo rigettare l'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività dell'1% per tutti i lag. Perciò, possiamo concludere che i residui standardizzati sono privi di eteroschedasticità
+# condizionata.
+
+# Verifichiamo ora la stazionarietà e l'omoschedasticità non condizionata.
+
+# Grafico dei residui
+df_residui <- data.frame(
+  Date = index(z_hat),
+  Residui = as.numeric(z_hat)
+)
+
+ggplot(df_residui, aes(x = Date, y = Residui)) +
+  geom_line(color = "steelblue", linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Grafico dei residui standardizzati",
+    subtitle = "Modello GARCH(1,3) con distribuzione skewed Student-t per AAPL",
+    x = "Data",
+    y = "Residui standardizzati"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(size = 11)
+  )
+
+# KPSS Test
+kpss_test_level(df_residui, col = "Residui", alpha = 0.01)
+# 
+# [Residui] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.097344
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Quindi, i residui standardizzati sono stazionari.
+
+# Per l'omoschedasticità non condizionata, per prima cosa, vediamo se c'è curtosi nei residui standardizzati.
+
+# Calcola la curtosi
+kurt_z_hat <- kurtosis(as.numeric(z_hat), na.rm = TRUE)
+
+cat(sprintf("Curtosi dei residui standardizzati: %.4f\n", kurt_z_hat))
+# Curtosi dei residui standardizzati: 7.6119
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Breusch-Pagan Test:
+# Crea un indice temporale (può essere anche un numero progressivo)
+df_residui$Index <- seq_along(df_residui$Residui)
+
+# Esegui il test BP
+breusch_pagan_test(
+  index = df_residui$Index,
+  group = df_residui$Residui,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] Breusch-Pagan Test
+# Statistic: 3.594538
+# p-value: 0.0579697
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# White Test
+white_test(
+  index = df_residui$Index,
+  group = df_residui$Residui,
+  col = "Residui standardizzati"
+)
+# [Residui standardizzati] White Test
+# Statistic: 4.221253
+# p-value: 0.121162
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Dai risultati dei test si vede che è verificata anche la condizione di omoschedasticità (non condizionata).
+
+# Per verificare ulteriormente l'assenza di autocorrelazione per i residui standardizzati
+# di questo modello, facciamo anche l'ACF, il PACF e il test di Ljung-Box classico.
+
+# ACF
+df_z <- data.frame(z_hat = as.numeric(z_hat))
+plot_acf_residuals(df_z, col = "z_hat")
+
+# PACF
+plot_pacf_residuals(df_z, col = "z_hat")
+
+# L’analisi visiva di ACF e PACF mostra che, in entrambi i grafici, nessuna barra supera la banda di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+# Ljung-Box Test
+ljungbox_test(as.numeric(z_hat), col_name = "Residui standardizzati")
+# Ljung-Box test per Residui standardizzati (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.9720466 0.3241703
+# X-squared1   2 2.6456626 0.2663800
+# X-squared2   3 3.3826290 0.3363068
+# X-squared3   4 3.3889179 0.4949683
+# X-squared4   5 4.8817692 0.4304791
+# X-squared5   6 4.9012213 0.5565434
+# X-squared6   7 5.3628964 0.6157684
+# X-squared7   8 5.4469303 0.7089123
+# X-squared8   9 5.4497663 0.7934723
+# X-squared9  10 6.1975095 0.7984053
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# Infine, verifichiamo che i residui seguono la distribuziione ipotizzata:
+
+# Test di SW
+shapirowilk_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Shapiro-Wilk Test
+# Statistic: 0.945297
+# p-value  : 3.23486e-12
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Test di JB
+jarque_bera_test(as.numeric(z_hat), name = "Residui standardizzati")
+# 
+# [Residui standardizzati] Jarque-Bera Test
+# Statistic: 437.552339
+# p-value  : 0
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON seguono una distribuzione normale.
+
+# Come atteso, i residui standardizzati del GARCH(1,3) con distribuzione skewed Student-t non seguono una distribuzione normale.
+
+# QQ-Plot SSTD:
+# Residui standardizzati ordinati
+y <- sort(as.numeric(z_hat))
+n <- length(y)
+
+# Parametri stimati da 'fit'
+params <- coef(fit)
+SSTD_xi <- params["skew"]
+SSTD_nu <- params["shape"]
+mean <- 0
+sd <- 1
+
+# Parametri della distribuzione skewed Student-t
+distr <- "sstd"
+distr_pars <- list(mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# Quantili teorici
+quants <- qsstd(ppoints(n), mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+
+# DataFrame per plotting
+QQ_plot_df <- data.frame(
+  T = 1:n,
+  Q = quants,
+  X = y,
+  Y = y
+)
+
+# Calcolo retta interquartile
+quart_probs <- c(0.25, 0.75)
+quart_X <- as.vector(quantile(QQ_plot_df$X, quart_probs))
+quart_Q <- qsstd(quart_probs, mean = mean, sd = sd, nu = SSTD_nu, xi = SSTD_xi)
+slope <- diff(quart_X) / diff(quart_Q)
+intercept <- quart_X[1] - slope * quart_Q[1]
+
+# Titoli
+title_content <- bquote(atop("University of Roma \"Tor Vergata\" - Essentials of Time Series Analysis \u0040 MPSMF 2024-2025",
+                             paste("Q-Q plot of the Standardized Residuals from the GARCH(1,3) model for AAPL (skewed Student-t)")))
+subtitle_content <- bquote(paste("Sample size: ", .(n), 
+                                 "; SSTD parameters → mean = ", .(mean), 
+                                 ", sd = ", .(sd), 
+                                 ", df = ", .(round(SSTD_nu, 3)), 
+                                 ", skew = ", .(round(SSTD_xi, 3)), "."))
+
+caption_content <- "Author: Matteo Basili"
+x_name <- bquote("Theoretical Quantiles (SSTD)")
+y_name <- bquote("Standardized Residuals")
+
+# Assi e legende
+x_breaks <- seq(from = floor(min(QQ_plot_df$Q)), to = ceiling(max(QQ_plot_df$Q)), by = 0.5)
+x_labs <- format(x_breaks, scientific = FALSE)
+y_breaks_num <- length(x_breaks)
+y_binwidth <- round((max(QQ_plot_df$Y) - min(QQ_plot_df$Y)) / y_breaks_num, digits = 3)
+y_breaks <- round(seq(from = floor(min(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      to = ceiling(max(QQ_plot_df$Y)/y_binwidth)*y_binwidth, 
+                      by = y_binwidth), 3)
+y_labs <- format(y_breaks, scientific = FALSE)
+
+# Legende e colori
+leg_shape_labs <- bquote("Q-Q plot")
+leg_fill_labs <- c(bquote("90% confidence interval"), bquote("95% confidence interval"))
+leg_col_labs <- c(bquote("Interquartile line"), bquote("Regression line"), bquote("y = x"))
+
+Stand_Res_std_QQ_plot <- ggplot(QQ_plot_df) +
+  stat_qq_band(aes(sample = X, fill = "95"), distribution = distr, dparams = distr_pars, conf = 0.95) +
+  stat_qq_band(aes(sample = X, fill = "90"), distribution = distr, dparams = distr_pars, conf = 0.90) +
+  geom_abline(aes(slope = slope, intercept = intercept, colour = "IQR"), linewidth = 0.8) +
+  stat_smooth(aes(x = Q, y = Y, colour = "Reg", group = 1), method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_abline(aes(slope = 1, intercept = 0, colour = "45deg"), linewidth = 0.8) +
+  stat_qq_point(aes(sample = X), shape = 19, color = "black", size = 1.2, alpha = 0.8, distribution = distr, dparams = distr_pars) +
+  scale_x_continuous(name = x_name, breaks = x_breaks, labels = x_labs) +
+  scale_y_continuous(name = y_name, breaks = y_breaks, labels = NULL,
+                     sec.axis = sec_axis(~ ., breaks = y_breaks, labels = y_labs)) +
+  ggtitle(title_content) +
+  labs(subtitle = subtitle_content, caption = caption_content) +
+  scale_shape_manual(name = "", labels = leg_shape_labs, values = c("19")) +
+  scale_fill_manual(name = "", values = c("90" = "chartreuse1", "95" = "deepskyblue1"), labels = leg_fill_labs) +
+  scale_colour_manual(name = "", values = c("IQR" = "cyan", "Reg" = "red", "45deg" = "black"), labels = leg_col_labs) +
+  guides(shape = guide_legend(order = 1), fill = guide_legend(order = 2), colour = guide_legend(order = 3)) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 0, vjust = 1),
+    legend.key.width = unit(0.8, "cm"),
+    legend.position = "bottom"
+  )
+
+# Mostra il plot
+plot(Stand_Res_std_QQ_plot)
+
+# Calcola densità teorica nei quantili (pdf)
+dens <- dsstd(quants, mean=mean, sd=sd, nu=SSTD_nu, xi=SSTD_xi)
+
+# Calcola errore standard dei quantili teorici (formula banda Q-Q)
+# Errore standard: SE = (p * (1-p)) / (n * f(Q)^2)
+p <- ppoints(n)
+SE <- sqrt(p * (1-p) / (n * dens^2))
+
+# Limiti di confidenza (95%)
+alpha <- 0.05
+z <- qnorm(1 - alpha/2)
+
+lower_95 <- quants - z * SE
+upper_95 <- quants + z * SE
+
+# Verifica quanti punti osservati cadono dentro le bande
+# Ricorda che QQ_plot_df$X = dati ordinati osservati
+
+inside_95 <- (QQ_plot_df$X >= lower_95) & (QQ_plot_df$X <= upper_95)
+
+percent_inside_95 <- mean(inside_95) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 95%%: %.2f%%\n", percent_inside_95))
+# Percentuale di punti dentro la banda di confidenza al 95%: 100.00%
+
+# Alpha per il 90%
+alpha_90 <- 0.10
+z_90 <- qnorm(1 - alpha_90/2)  # quantile normale per il 90%
+
+# Limiti di confidenza al 90%
+lower_90 <- quants - z_90 * SE
+upper_90 <- quants + z_90 * SE
+
+# Verifica quanti punti osservati cadono dentro la banda 90%
+inside_90 <- (QQ_plot_df$X >= lower_90) & (QQ_plot_df$X <= upper_90)
+
+percent_inside_90 <- mean(inside_90) * 100
+
+cat(sprintf("Percentuale di punti dentro la banda di confidenza al 90%%: %.2f%%\n", percent_inside_90))
+# Percentuale di punti dentro la banda di confidenza al 90%: 99.37%
+
+# Kolmogorov-Smirnov test (K-S test)
+ks_result <- ks.test(y, 
+                     y = function(q) psstd(q, mean=0, sd=1, nu=SSTD_nu, xi=SSTD_xi),
+                     alternative = "two.sided")
+
+print(ks_result)
+# 
+#         Asymptotic one-sample Kolmogorov-Smirnov test
+# 
+# data:  y
+# D = 0.02188, p-value = 0.9771
+# alternative hypothesis: two-sided
+
+# Dall'analisi del Q-Q Plot e del test di K-S vediamo, quindi, che i residui standardizzati seguono la distribuzione skewed Student-t con un livello
+# di significatività del 10%.
+
+# In conclusione, alla luce di tutti i risultati ottenuti dall’analisi dei residui standardizzati, possiamo concludere che
+# il modello GARCH(1,3) con distribuzione skewed Student-t ha catturato correttamente la dinamica della volatilità.
+
+best_valid_p <- valid_models$p[12]
+best_valid_q <- valid_models$q[12]
+best_valid_dist <- valid_models$dist[12]
+
+cat(sprintf("Modello valido migliore (secondo il criterio AICc + BIC): GARCH(%d,%d) con distribuzione %s\n", best_valid_p, best_valid_q, best_valid_dist))
+# Modello valido migliore (secondo il criterio AICc + BIC): GARCH(1,3) con distribuzione sstd
+##################################################################################################################################################
+
+################################################### Analisi della Volatilità di UNH tramite Modello GARCH ##################################
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test
+adf_test_all(training_set, "UNH_AdjClose")
+# 
+# [UNH_AdjClose] ADF Test - Senza Intercetta
+# Statistic: -0.813579
+# p-value  : 0.363206
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [UNH_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -0.869166
+# p-value  : 0.797584
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [UNH_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -1.140714
+# p-value  : 0.919827
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "UNH_AdjClose")
+# 
+# [UNH_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.988334
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [UNH_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.896632
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
+adf_test_all(training_set, "UNH_LogReturn")
+# 
+# [UNH_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -19.606844
+# p-value  : 2.50033e-38
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [UNH_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -19.620226
+# p-value  : 2.00977e-36
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [UNH_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -19.716805
+# p-value  : 1.34462e-44
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "UNH_LogReturn")
+# 
+# [UNH_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.317321
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [UNH_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.085829
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie UNH_LogReturn
+kurt_value <- kurtosis(training_set$UNH_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 43.4575
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$UNH_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$UNH_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "UNH_LogReturn")
+# [UNH_LogReturn] Breusch-Pagan Test
+# Statistic: 9.830860
+# p-value: 0.00171608
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "UNH_LogReturn")
+# [UNH_LogReturn] White Test
+# Statistic: 13.921258
+# p-value: 0.0009485
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo UNH.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["UNH_LogReturn"]], col_name = "UNH_LogReturn")
+# Ljung-Box test per UNH_LogReturn (max_lag = 10):
+#            lag  lb_stat  lb_pvalue
+# X-squared    1 4.662199 0.03083367
+# X-squared1   2 5.115029 0.07749714
+# X-squared2   3 5.115069 0.16356259
+# X-squared3   4 5.744857 0.21902999
+# X-squared4   5 5.830190 0.32309448
+# X-squared5   6 5.834089 0.44202997
+# X-squared6   7 6.084154 0.52995827
+# X-squared7   8 6.496059 0.59184484
+# X-squared8   9 7.219119 0.61431763
+# X-squared9  10 7.300999 0.69675598
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.01. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "UNH_LogReturn")
+
+# PACF
+plot_pacf(training_set, "UNH_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che solo una barra supera le bande di confidenza al 95%, ma non al 99%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["UNH_LogReturn"]], col_name = "UNH_LogReturn")
+# ARCH Test per UNH_LogReturn (max_lag = 5):
+#            lag arch_stat arch_pvalue
+# statistic    1  1.033616   0.3093108
+# statistic1   2  4.551070   0.1027419
+# statistic2   3  4.617616   0.2020361
+# statistic3   4  4.947827   0.2926928
+# statistic4   5  4.953453   0.4215873
+
+# Il test di Engle sui rendimenti logaritmici di UNH non ha evidenziato la presenza di eteroschedasticità condizionata significativa
+# (p-value > 0.10 per tutti i lag considerati). Pertanto, un modello GARCH non risulta appropriato per questa serie e il titolo
+# viene escluso dalle successive analisi multivariate.
+##################################################################################################################################################
+
+################################################### Analisi della Volatilità di JPM tramite Modello GARCH ##################################
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test
+adf_test_all(training_set, "JPM_AdjClose")
+# 
+# [JPM_AdjClose] ADF Test - Senza Intercetta
+# Statistic: 1.661819
+# p-value  : 0.97682
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [JPM_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -0.352884
+# p-value  : 0.914043
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [JPM_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -3.451316
+# p-value  : 0.0460269
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "JPM_AdjClose")
+# 
+# [JPM_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 7.604403
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [JPM_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.214497
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value ≈ 0.025
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# I risultati dell’ADF indicano la presenza di una unit root in tutti i casi considerati, quindi la serie non è stazionaria a un livello di
+# significatività dell’1%.
+# Il KPSS conferma la non stazionarietà attorno alla media costante, ma suggerisce che la serie potrebbe essere trend-stazionaria.
+# Nel complesso, possiamo affermare che i prezzi aggiustati di JPM non sono stazionari e presentano un trend deterministico: per applicare
+# modelli come il GARCH sarà necessario trasformare la serie per renderla stazionaria.
+
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
+adf_test_all(training_set, "JPM_LogReturn")
+# 
+# [JPM_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -14.299017
+# p-value  : 1.15821e-29
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [JPM_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -21.736247
+# p-value  : 7.04134e-37
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [JPM_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -21.716908
+# p-value  : 1.59476e-47
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "JPM_LogReturn")
+# 
+# [JPM_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.050855
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [JPM_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.048389
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie JPM_LogReturn
+kurt_value <- kurtosis(training_set$JPM_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 13.8713
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$JPM_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$JPM_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "JPM_LogReturn")
+# [JPM_LogReturn] Breusch-Pagan Test
+# Statistic: 8.390485
+# p-value: 0.0037719
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "JPM_LogReturn")
+# [JPM_LogReturn] White Test
+# Statistic: 8.415121
+# p-value: 0.0148826
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente i rendimenti logaritmici per vedere se possiamo
+# trarre delle conclusioni.
+
+# Scatterplot dei rendimenti logaritmici nel tempo
+ggplot(training_set, aes(x = Date, y = JPM_LogReturn)) +
+  geom_point(alpha = 0.6, color = "blue", na.rm = TRUE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Rendimenti Logaritmici di JPM",
+    subtitle = "Periodo: Training Set (95% delle osservazioni)",
+    x = "Data",
+    y = "Rendimento Logaritmico (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11)
+  )
+
+# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
+# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo JPM.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["JPM_LogReturn"]], col_name = "JPM_LogReturn")
+# Ljung-Box test per JPM_LogReturn (max_lag = 10):
+#            lag      lb_stat lb_pvalue
+# X-squared    1 0.0006007107 0.9804463
+# X-squared1   2 1.7120331464 0.4248511
+# X-squared2   3 2.2020114559 0.5315523
+# X-squared3   4 4.0958341797 0.3931914
+# X-squared4   5 4.6500621622 0.4600600
+# X-squared5   6 6.0725623376 0.4151109
+# X-squared6   7 6.7365902699 0.4568116
+# X-squared7   8 8.4348048463 0.3921891
+# X-squared8   9 8.4397890389 0.4905039
+# X-squared9  10 8.6445328762 0.5661378
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "JPM_LogReturn")
+
+# PACF
+plot_pacf(training_set, "JPM_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che nessuna barra supera le bande di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["JPM_LogReturn"]], col_name = "JPM_LogReturn")
+# ARCH Test per JPM_LogReturn (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  18.30183 1.885264e-05
+# statistic1   2  18.32969 1.046545e-04
+# statistic2   3  22.16807 6.018385e-05
+# statistic3   4  25.52188 3.950417e-05
+# statistic4   5  25.44954 1.140696e-04
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività dell'1% per tutti i lag.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri del JPM
+# presenti nel training set.
+##################################################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################### Analisi della Volatilità di AMZN tramite Modello GARCH ##################################
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test
+adf_test_all(training_set, "AMZN_AdjClose")
+# 
+# [AMZN_AdjClose] ADF Test - Senza Intercetta
+# Statistic: 0.733281
+# p-value  : 0.872699
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AMZN_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -1.653208
+# p-value  : 0.454509
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AMZN_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -2.491352
+# p-value  : 0.332359
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "AMZN_AdjClose")
+# 
+# [AMZN_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 6.178600
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [AMZN_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.630709
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
+adf_test_all(training_set, "AMZN_LogReturn")
+# 
+# [AMZN_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -22.344237
+# p-value  : 7.98705e-40
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AMZN_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -22.383790
+# p-value  : 1.06597e-36
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AMZN_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -22.378699
+# p-value  : 3.39498e-48
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "AMZN_LogReturn")
+# 
+# [AMZN_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.066256
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [AMZN_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.034717
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie AMZN_LogReturn
+kurt_value <- kurtosis(training_set$AMZN_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 7.7545
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$AMZN_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$AMZN_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "AMZN_LogReturn")
+# [AMZN_LogReturn] Breusch-Pagan Test
+# Statistic: 2.485484
+# p-value: 0.114901
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "AMZN_LogReturn")
+# [AMZN_LogReturn] White Test
+# Statistic: 6.742100
+# p-value: 0.0343536
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Alla luce dei risultati, non possiamo rifiutare l'ipotesi nulla di omoschedasticità: non c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo AMZN.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["AMZN_LogReturn"]], col_name = "AMZN_LogReturn")
+# Ljung-Box test per AMZN_LogReturn (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1 0.3734689 0.5411195
+# X-squared1   2 1.9200791 0.3828777
+# X-squared2   3 1.9831027 0.5759212
+# X-squared3   4 2.0122239 0.7335104
+# X-squared4   5 2.2019152 0.8205593
+# X-squared5   6 2.2323575 0.8971367
+# X-squared6   7 3.2988166 0.8560526
+# X-squared7   8 3.8789187 0.8678792
+# X-squared8   9 4.4710841 0.8777684
+# X-squared9  10 4.5023862 0.9218515
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "AMZN_LogReturn")
+
+# PACF
+plot_pacf(training_set, "AMZN_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che nessuna barra supera le bande di confidenza al 90%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["AMZN_LogReturn"]], col_name = "AMZN_LogReturn")
+# ARCH Test per AMZN_LogReturn (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  7.786032 5.265170e-03
+# statistic1   2  8.185011 1.669735e-02
+# statistic2   3  9.064248 2.844876e-02
+# statistic3   4 33.377223 9.998199e-07
+# statistic4   5 33.885132 2.509717e-06
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH
+# per tutti i lag considerati, con un livello di significatività dell'1% per i lag 1, 4 e 5, e comunque significativo ai livelli del 5%
+# per i lag 2 e 3.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri di AMZN
+# presenti nel training set.
+##################################################################################################################################################
+
+################################################### Analisi della Volatilità di XOM tramite Modello GARCH ##################################
+# Stazionarietà dei prezzi aggiustati:
+# ADF Test
+adf_test_all(training_set, "XOM_AdjClose")
+# 
+# [XOM_AdjClose] ADF Test - Senza Intercetta
+# Statistic: 0.308396
+# p-value  : 0.774494
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [XOM_AdjClose] ADF Test - Con Intercetta (Drift)
+# Statistic: -2.472886
+# p-value  : 0.122806
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [XOM_AdjClose] ADF Test - Con Intercetta e Trend
+# Statistic: -2.707289
+# p-value  : 0.234096
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "XOM_AdjClose")
+# 
+# [XOM_AdjClose] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 2.393913
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [XOM_AdjClose] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.774268
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+#result <- urca::ur.df(na.omit(training_set[["SPY_LogReturn"]]), type = "none")
+#summary(result)
+adf_test_all(training_set, "XOM_LogReturn")
+# 
+# [XOM_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -21.601752
+# p-value  : 1.21968e-39
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [XOM_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: -21.590320
+# p-value  : 6.72562e-37
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [XOM_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -21.567927
+# p-value  : 2.37032e-47
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# KPSS Test
+kpss_test_all(training_set, "XOM_LogReturn")
+# 
+# [XOM_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 0.035527
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [XOM_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 0.035416
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value > 0.10
+# 
+# ** CONCLUSIONE: Statistic <= valore critico (1%) **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie XOM_LogReturn
+kurt_value <- kurtosis(training_set$XOM_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 5.3060
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$XOM_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$XOM_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "XOM_LogReturn")
+# [XOM_LogReturn] Breusch-Pagan Test
+# Statistic: 3.946539
+# p-value: 0.0469679
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "XOM_LogReturn")
+# [XOM_LogReturn] White Test
+# Statistic: 9.950111
+# p-value: 0.00690813
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente i rendimenti logaritmici per vedere se possiamo
+# trarre delle conclusioni.
+
+# Scatterplot dei rendimenti logaritmici nel tempo
+ggplot(training_set, aes(x = Date, y = XOM_LogReturn)) +
+  geom_point(alpha = 0.6, color = "blue", na.rm = TRUE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Rendimenti Logaritmici di XOM",
+    subtitle = "Periodo: Training Set (95% delle osservazioni)",
+    x = "Data",
+    y = "Rendimento Logaritmico (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11)
+  )
+
+# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
+# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
+
+# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo XOM.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["XOM_LogReturn"]], col_name = "XOM_LogReturn")
+# Ljung-Box test per XOM_LogReturn (max_lag = 10):
+#            lag     lb_stat lb_pvalue
+# X-squared    1  0.01160408 0.9142160
+# X-squared1   2  0.82284350 0.6627074
+# X-squared2   3  1.22021958 0.7481590
+# X-squared3   4  1.30738270 0.8601217
+# X-squared4   5  1.91841065 0.8603154
+# X-squared5   6  1.96407191 0.9229730
+# X-squared6   7  7.14305549 0.4141386
+# X-squared7   8  7.17297347 0.5180905
+# X-squared8   9 10.54229401 0.3083904
+# X-squared9  10 10.54875777 0.3937360
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono maggiori di α = 0.10. Dunque, non abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "XOM_LogReturn")
+
+# PACF
+plot_pacf(training_set, "XOM_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che solo una barra supera le bande di confidenza al 95%, ma non al 99%.
+# Dunque, non c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["XOM_LogReturn"]], col_name = "XOM_LogReturn")
+# ARCH Test per XOM_LogReturn (max_lag = 5):
+#            lag arch_stat  arch_pvalue
+# statistic    1  37.91690 7.382288e-10
+# statistic1   2  37.85567 6.022077e-09
+# statistic2   3  45.58383 6.953052e-10
+# statistic3   4  68.30913 5.162292e-14
+# statistic4   5  69.56264 1.263685e-13
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività dell'1% per tutti i lag.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dello XOM
+# presenti nel training set.
+##################################################################################################################################################
+
+################################################### MODELLO GARCH MULTIVARIATO ##################################
 ##################################################################################################################################################
