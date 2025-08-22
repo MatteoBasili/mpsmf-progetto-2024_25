@@ -119,7 +119,7 @@ print(head(risk_free_df, 10))
 write_csv(risk_free_df, file.path(data_folder, "risk_free_3mo_daily.csv"))
 ##################################################################################################################################################
 
-################################################### Calcolo dei Rendimenti Logaritmici Giornalieri (Percentuali) per i titoli rischiosi ##########
+################################################### Calcolo dei Rendimenti Logaritmici Giornalieri (Percentuali) per i Titoli Rischiosi ##########
 ##################################################################################################################################################
 # Elenco dei ticker
 tickers <- c('SPY', 'AAPL', 'UNH', 'JPM', 'AMZN', 'XOM')
@@ -15981,8 +15981,7 @@ kpss_test_all(training_set, "JPM_AdjClose")
 # I risultati dell’ADF indicano la presenza di una unit root in tutti i casi considerati, quindi la serie non è stazionaria a un livello di
 # significatività dell’1%.
 # Il KPSS conferma la non stazionarietà attorno alla media costante, ma suggerisce che la serie potrebbe essere trend-stazionaria.
-# Nel complesso, possiamo affermare che i prezzi aggiustati di JPM non sono stazionari e presentano un trend deterministico: per applicare
-# modelli come il GARCH sarà necessario trasformare la serie per renderla stazionaria.
+# Quindi, per applicare il modello GARCH sarà necessario trasformare la serie per renderla completamente stazionaria.
 
 
 # Stazionarietà dei rendimenti logaritmici:
@@ -18071,9 +18070,6 @@ white_test(index_clean, group_clean, "XOM_LogReturn")
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati SONO eteroschedastici.
 
-# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente i rendimenti logaritmici per vedere se possiamo
-# trarre delle conclusioni.
-
 # Scatterplot dei rendimenti logaritmici nel tempo
 ggplot(training_set, aes(x = Date, y = XOM_LogReturn)) +
   geom_point(alpha = 0.6, color = "blue", na.rm = TRUE) +
@@ -18089,11 +18085,6 @@ ggplot(training_set, aes(x = Date, y = XOM_LogReturn)) +
     plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
     plot.subtitle = element_text(hjust = 0.5, size = 11)
   )
-
-# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
-# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
-
-# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
 
 
 # Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
@@ -19927,7 +19918,174 @@ cat(sprintf("Modello valido migliore (secondo il criterio AICc + BIC): GARCH(%d,
 
 ################################################### Analisi della Volatilità dei Bond tramite Modello GARCH ######################################
 ##################################################################################################################################################
+# Stazionarietà dei rendimenti logaritmici:
+# ADF Test
+adf_test_all(training_set, "Rf_Daily_LogReturn")
+# 
+# [Rf_Daily_LogReturn] ADF Test - Senza Intercetta
+# Statistic: -2.707595
+# p-value  : 0.00670229
+# 
+# ** CONCLUSIONE: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO stazionari.
+# 
+# 
+# [Rf_Daily_LogReturn] ADF Test - Con Intercetta (Drift)
+# Statistic: 0.077858
+# p-value  : 0.963783
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [Rf_Daily_LogReturn] ADF Test - Con Intercetta e Trend
+# Statistic: -1.482169
+# p-value  : 0.834583
+# 
+# ** CONCLUSIONE: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
 
+# KPSS Test
+kpss_test_all(training_set, "Rf_Daily_LogReturn")
+# 
+# [Rf_Daily_LogReturn] KPSS Test - Stazionarietà attorno a una media costante
+# Statistic: 7.104643
+# Valore critico (circa 1%): 0.739000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+# 
+# 
+# [Rf_Daily_LogReturn] KPSS Test - Stazionarietà attorno a un trend deterministico
+# Statistic: 1.217352
+# Valore critico (circa 1%): 0.216000
+# Interpretazione del p-value: p-value < 0.01
+# 
+# ** CONCLUSIONE: Statistic > valore critico (1%) **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono stazionari.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
+# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
+
+# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
+# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
+
+
+# Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
+# Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
+
+# Calcola la curtosi della serie XOM_LogReturn
+kurt_value <- kurtosis(training_set$Rf_Daily_LogReturn, na.rm = TRUE)
+
+cat(sprintf("Curtosi: %.4f\n", kurt_value))
+# Curtosi: 1.3728
+
+# La curtosi c'è. Quindi, applichiamo la forma "studentized" dei test di Breusch-Pagan e White per la stazionarietà in varianza.
+
+# Test di Breusch-Pagan.
+# Estrai index e group, rimuovi righe con NA in group
+valid_rows <- !is.na(training_set$Rf_Daily_LogReturn)
+index_clean <- training_set$Index[valid_rows]
+group_clean <- training_set$Rf_Daily_LogReturn[valid_rows]
+
+# Esegue il test di Breusch-Pagan
+breusch_pagan_test(index_clean, group_clean, "Rf_Daily_LogReturn")
+# [Rf_Daily_LogReturn] Breusch-Pagan Test
+# Statistic: 0.051213
+# p-value: 0.820966
+# 
+# ** Conclusione: p-value > 0.01 **
+# Non possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati NON sono eteroschedastici.
+
+# Test di White
+white_test(index_clean, group_clean, "Rf_Daily_LogReturn")
+# [Rf_Daily_LogReturn] White Test
+# Statistic: 61.675805
+# p-value: 4.04827e-14
+# 
+# ** Conclusione: p-value <= 0.01 **
+# Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
+# → I dati SONO eteroschedastici.
+
+# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente i rendimenti logaritmici per vedere se possiamo
+# trarre delle conclusioni.
+
+# Scatterplot dei rendimenti logaritmici nel tempo
+ggplot(training_set, aes(x = Date, y = Rf_Daily_LogReturn)) +
+  geom_point(alpha = 0.6, color = "blue", na.rm = TRUE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Rendimenti Logaritmici dei Bond",
+    subtitle = "Periodo: Training Set (95% delle osservazioni)",
+    x = "Data",
+    y = "Rendimento Logaritmico (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11)
+  )
+
+# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
+# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
+
+# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
+
+
+# Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
+# osservazioni successive.
+# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo XOM.
+
+# Test di Ljung-Box
+ljungbox_test(training_set[["Rf_Daily_LogReturn"]], col_name = "Rf_Daily_LogReturn")
+# Ljung-Box test per Rf_Daily_LogReturn (max_lag = 10):
+#            lag   lb_stat lb_pvalue
+# X-squared    1  471.6941         0
+# X-squared1   2  941.2833         0
+# X-squared2   3 1408.7934         0
+# X-squared3   4 1874.0729         0
+# X-squared4   5 2337.0998         0
+# X-squared5   6 2797.6795         0
+# X-squared6   7 3255.6319         0
+# X-squared7   8 3710.9454         0
+# X-squared8   9 4163.5027         0
+# X-squared9  10 4613.2402         0
+
+# Osservando i p-value associati ai vari lag, vediamo che tutti questi sono uguali a 0. Dunque, abbiamo evidenza statistica
+# sufficiente per rifiutare l’ipotesi nulla di assenza di autocorrelazione fino al lag specificato.
+
+# ACF
+plot_acf(training_set, "Rf_Daily_LogReturn")
+
+# PACF
+plot_pacf(training_set, "Rf_Daily_LogReturn")
+
+# L’analisi visiva di ACF e PACF mostra che ci sono barre (tutte in ACF e solo una in PACF) che superano le bande di confidenza al 99%.
+# Dunque, c'è una forte evidenza visiva di autocorrelazione.
+
+
+# Test ARCH di Engle
+arch_effects_test(training_set[["Rf_Daily_LogReturn"]], col_name = "Rf_Daily_LogReturn")
+# ARCH Test per Rf_Daily_LogReturn (max_lag = 5):
+#            lag arch_stat   arch_pvalue
+# statistic    1  465.0052 3.914659e-103
+# statistic1   2  464.0269 1.729179e-101
+# statistic2   3  463.0935 4.744902e-100
+# statistic3   4  462.1079  1.047433e-98
+# statistic4   5  461.1304  1.950663e-97
+
+# Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
+# significatività dell'1% per tutti i lag.
+# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dello XOM
+# presenti nel training set.
 ##################################################################################################################################################
 
 # Riepilogo modelli GARCH:
