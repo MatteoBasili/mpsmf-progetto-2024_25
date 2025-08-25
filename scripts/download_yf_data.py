@@ -10,7 +10,7 @@ tickers = ['SPY', 'AAPL', 'UNH', 'JPM', 'AMZN', 'XOM', 'IEF']
 
 # Date di inizio e fine
 start_date = "2023-07-31"
-end_date = "2025-07-30"
+end_date = "2025-08-23"
 
 # Itera su ciascun ticker
 for ticker in tickers:

@@ -88,9 +88,9 @@ treasury_data <- files %>%
 treasury_data <- treasury_data %>%
   mutate(Date = mdy(Date))
 
-# Filtra per date tra 2023-07-31 e 2025-07-29 (inclusi)
+# Filtra per date tra 2023-07-31 e 2025-08-22 (inclusi)
 treasury_filtered <- treasury_data %>%
-  filter(Date >= as.Date("2023-07-31") & Date <= as.Date("2025-07-29"))
+  filter(Date >= as.Date("2023-07-31") & Date <= as.Date("2025-08-22"))
 
 # Estrai solo la colonna 3 Mo e calcola tasso giornaliero
 risk_free_df <- treasury_filtered %>%
@@ -158,23 +158,23 @@ merged_data <- merged_data %>%
 
 # Controlla la struttura finale
 glimpse(merged_data)
-# Rows: 501
+# Rows: 519
 # Columns: 15
-# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33…
-# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, …
-# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 4…
-# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.…
-# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 1…
-# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, …
-# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 4…
-# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573…
-# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 1…
-# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2…
-# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 1…
-# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54…
-# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101…
-# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.54091033…
-# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0…
+# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, 2023…
+# $ SPY_AdjClose       <dbl> 445.9210, 444.6451, 438.4597, 437.2031, 435.2256, 439.0246, 437.1154, 434.1932, 434.3490, 434.0957, 436.4920, 431.4073, 428.2…
+# $ SPY_LogReturn      <dbl> NA, -0.28655287, -1.40085211, -0.28699682, -0.45332090, 0.86907467, -0.43580985, -0.67076615, 0.03587442, -0.05832620, 0.5504…
+# $ AAPL_AdjClose      <dbl> 194.2821, 193.4514, 190.4548, 189.0603, 179.9817, 176.8763, 177.8158, 176.2236, 176.0060, 176.0655, 177.7193, 175.7287, 174.8…
+# $ AAPL_LogReturn     <dbl> NA, -0.42850854, -1.56113301, -0.73486465, -4.92111520, -1.74042619, 0.52976436, -0.89947611, -0.12353295, 0.03375321, 0.9349…
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8444, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 486.6…
+# $ UNH_LogReturn      <dbl> NA, -0.32240663, 0.01188633, 0.01187866, -0.42278818, 1.58074176, -0.96007723, -0.74406862, 0.27247494, 0.89572487, 0.5731350…
+# $ JPM_AdjClose       <dbl> 150.7004, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5025, 147.3517, 147.6570, 143.8980, 143.2…
+# $ JPM_LogReturn      <dbl> NA, -0.49506220, -1.13890250, 0.60946624, -0.21127840, 0.47315860, -0.56294772, -1.34984202, -0.14967144, 0.57791122, 0.20697…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 134.6…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.548531…
+# $ XOM_AdjClose       <dbl> 99.17884, 98.60544, 97.37541, 99.06787, 99.34530, 99.14185, 99.63200, 101.32444, 101.84236, 103.42381, 103.50704, 100.84968, …
+# $ XOM_LogReturn      <dbl> NA, -0.579827694, -1.255267946, 1.723144673, 0.279646613, -0.204996146, 0.493174960, 1.684420964, 0.509849607, 1.540909225, 0…
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.021…
 
 # Salva il dataset completo
 write_csv(merged_data, file.path(data_folder, "merged_data_with_log_returns_and_rf.csv"))
@@ -198,7 +198,7 @@ plot_adj_close <- function(df, ticker) {
   
   ggplot(df, aes(x = Date, y = .data[[adj_col]])) +
     geom_line(color = "steelblue", size = 1.1) +
-    labs(title = paste(ticker, " - Prezzo di Chiusura Giornaliero Aggiustato: Andamento Completo dal 2023-07-31 al 2025-07-29"),
+    labs(title = paste(ticker, " - Prezzo di Chiusura Giornaliero Aggiustato: Andamento Completo dal 2023-07-31 al 2025-08-22"),
          x = "Date",
          y = "Adjusted Close Price (USD)") +
     theme_minimal() +
@@ -223,7 +223,7 @@ plot_candlestick_from_file <- function(ticker, data_folder) {
   
   # Filtra il periodo desiderato
   df <- df %>%
-    filter(Date >= as.Date("2025-04-29") & Date <= as.Date("2025-07-29"))
+    filter(Date >= as.Date("2025-05-22") & Date <= as.Date("2025-08-22"))
   
   df_plot <- df %>%
     mutate(Direction = ifelse(Close >= Open, "Up", "Down"))
@@ -242,7 +242,7 @@ plot_candlestick_from_file <- function(ticker, data_folder) {
     scale_fill_manual(values = c("Up" = "forestgreen", "Down" = "firebrick")) +
     scale_color_manual(values = c("Up" = "forestgreen", "Down" = "firebrick")) +
     theme_minimal() +
-    labs(title = paste(ticker, "- Grafico a Candele con Volume: dal 2025-04-29 al 2025-07-29"),
+    labs(title = paste(ticker, "- Grafico a Candele con Volume: dal 2025-05-22 al 2025-07-29"),
          y = "Price (USD)") +
     theme(legend.position = "none",
           axis.text.x = element_text(angle = 45, hjust = 1),
@@ -278,7 +278,7 @@ for (ticker in tickers) {
 
 # Come prima analisi quantitativa, visualizziamo l’andamento del prezzo di chiusura aggiustato.
 # Funzione per tracciare andamento Adj Close con regressione e LOESS
-plot_adjclose_with_regression_loess <- function(merged_df, ticker, start_date = "2023-07-31", end_date = "2025-07-29") {
+plot_adjclose_with_regression_loess <- function(merged_df, ticker, start_date = "2023-07-31", end_date = "2025-08-22") {
   adj_col <- paste0(ticker, "_AdjClose")
   
   df <- merged_df %>%
@@ -330,7 +330,11 @@ for (ticker in tickers) {
 
 
 # Simuliamo, ora, un modello di previsione del prezzo di chiusura aggiustato
-plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = "2023-07-31", end_date = "2025-07-29") {
+plot_adjclose_with_train_test_index <- function(merged_df, ticker,
+                                                start_date = "2023-07-31",
+                                                train_end = "2025-06-20",
+                                                test_start = "2025-06-23",
+                                                end_date = "2025-08-22") {
   adj_col <- paste0(ticker, "_AdjClose")
   
   df <- merged_df %>%
@@ -339,30 +343,29 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
     rename(AdjClose = all_of(adj_col)) %>%
     arrange(Index)
   
-  # Calcolo split_index (95% training)
-  total_len <- nrow(df)
-  split_index <- floor(total_len * 0.95)
-  split_day <- df$Date[split_index]
+  # Training e Test definiti manualmente
+  train_df <- df %>%
+    filter(Date <= as.Date(train_end)) %>%
+    mutate(Set = "Training")
   
-  train_df <- df[1:split_index, ]
-  test_df <- df[(split_index + 1):nrow(df), ]
+  test_df <- df %>%
+    filter(Date >= as.Date(test_start)) %>%
+    mutate(Set = "Test")
   
-  # Modelli con Index come variabile indipendente
+  # Modelli solo sul training
   lm_model <- lm(AdjClose ~ Index, data = train_df)
   loess_model <- loess(AdjClose ~ Index, data = train_df)
   
   train_df <- train_df %>%
     mutate(
       Regression = predict(lm_model, newdata = .),
-      LOESS = predict(loess_model, newdata = .),
-      Set = "Training"
+      LOESS = predict(loess_model, newdata = .)
     )
   
   test_df <- test_df %>%
     mutate(
       Regression = NA,
-      LOESS = NA,
-      Set = "Test"
+      LOESS = NA
     )
   
   df <- bind_rows(train_df, test_df) %>%
@@ -389,16 +392,16 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
       )
     )
   
-  plot_df$LegendaTipo <- factor(plot_df$LegendaTipo, levels = c("Training Set", "Test Set", "Regressione Lineare", "LOESS"))
-  plot_df$LinetypeLegenda <- factor(plot_df$LinetypeLegenda, levels = c("solid", "dashed"))
+  plot_df$LegendaTipo <- factor(plot_df$LegendaTipo,
+                                levels = c("Training Set", "Test Set", "Regressione Lineare", "LOESS"))
   
-  # Plot con asse x = Index (tempo come variabile numerica)
+  # Plot
   ggplot(plot_df, aes(x = Index, y = Valore)) +
     geom_line(data = filter(plot_df, Tipo == "AdjClose", !is.na(Valore)),
               aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
     geom_line(data = filter(plot_df, Tipo %in% c("Regression", "LOESS"), !is.na(Valore)),
               aes(color = LegendaTipo, linetype = LegendaTipo), linewidth = 1) +
-    geom_vline(xintercept = split_index, linetype = "solid", color = "darkgrey", linewidth = 1) +
+    geom_vline(xintercept = min(test_df$Index), linetype = "solid", color = "darkgrey", linewidth = 1) +
     scale_color_manual(name = NULL,
                        values = c(
                          "Training Set" = "black",
@@ -415,8 +418,8 @@ plot_adjclose_with_train_test_index <- function(merged_df, ticker, start_date = 
                           )) +
     labs(
       title = paste(ticker, "- Prezzo di Chiusura Aggiustato Giornaliero - Training e Test Set",
-                    "\nTrnS: Dal", start_date, "al", split_day, 
-                    " - TstS: Dal", split_day + 1, "al", end_date),
+                    "\nTrnS: Dal", start_date, "al", train_end,
+                    " - TstS: Dal", test_start, "al", end_date),
       y = "Adjusted Close Price (USD)", x = "Time Index"
     ) +
     theme_minimal() +
@@ -437,36 +440,38 @@ for (ticker in tickers) {
 # di un modello più avanzato per gestire la volatilità nel tempo.
 ##################################################################################################################################################
 
-# Calcolo del numero totale di osservazioni
-total_rows <- nrow(merged_data)
+train_start <- as.Date("2023-07-31")
+train_end   <- as.Date("2025-06-20")
+test_start  <- as.Date("2025-06-23")
+test_end    <- as.Date("2025-08-22")
 
-# Calcolo del limite per il 95% (training set)
-split_index <- floor(total_rows * 0.95)
-
-# Estrazione del training set
 training_set <- merged_data %>%
   arrange(Index) %>%
-  slice(1:split_index)
+  filter(Date >= train_start & Date <= train_end)
+
+test_set <- merged_data %>%
+  arrange(Index) %>%
+  filter(Date >= test_start & Date <= test_end)
 
 # Controlla la struttura finale
 glimpse(training_set)
 # Rows: 475
 # Columns: 15
-# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 3…
-# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, 202…
-# $ SPY_AdjClose       <dbl> 445.9211, 444.6450, 438.4597, 437.2031, 435.2258, 439.0246, 437.1154, 434.1931, 434.3491, 434.0958, 436.4920, 431.4073, 428.…
-# $ SPY_LogReturn      <dbl> NA, -0.28657344, -1.40083838, -0.28700380, -0.45328587, 0.86904662, -0.43581684, -0.67077322, 0.03590253, -0.05833322, 0.550…
-# $ AAPL_AdjClose      <dbl> 194.5026, 193.6709, 190.6709, 189.2749, 180.1859, 177.0770, 178.0176, 176.4236, 176.2058, 176.2653, 177.9209, 175.9282, 175.…
-# $ AAPL_LogReturn     <dbl> NA, -0.4285181, -1.5611262, -0.7348508, -4.9211211, -1.7404436, 0.5297655, -0.8994639, -0.1235487, 0.0337669, 0.9349219, -1.…
-# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8445, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 486.…
-# $ UNH_LogReturn      <dbl> NA, -0.32240665, 0.01189258, 0.01187866, -0.42278190, 1.58072929, -0.96006481, -0.74407486, 0.27248121, 0.89571860, 0.573141…
-# $ JPM_AdjClose       <dbl> 150.7003, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5026, 147.3516, 147.6570, 143.8980, 143.…
-# $ JPM_LogReturn      <dbl> NA, -0.49501147, -1.13893315, 0.60947653, -0.21126815, 0.47313814, -0.56292726, -1.34986268, -0.14964021, 0.57788003, 0.2069…
-# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 134.…
-# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.54853…
-# $ XOM_AdjClose       <dbl> 100.10175, 99.52301, 98.28154, 99.98974, 100.26975, 100.06440, 100.55911, 102.26731, 102.79004, 104.38621, 104.47021, 101.78…
-# $ XOM_LogReturn      <dbl> NA, -0.579824852, -1.255266006, 1.723134917, 0.279651386, -0.205010332, 0.493176325, 1.684434312, 0.509836978, 1.540910338, …
-# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.02…
+# $ Index              <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, 2023…
+# $ SPY_AdjClose       <dbl> 445.9210, 444.6451, 438.4597, 437.2031, 435.2256, 439.0246, 437.1154, 434.1932, 434.3490, 434.0957, 436.4920, 431.4073, 428.2…
+# $ SPY_LogReturn      <dbl> NA, -0.28655287, -1.40085211, -0.28699682, -0.45332090, 0.86907467, -0.43580985, -0.67076615, 0.03587442, -0.05832620, 0.5504…
+# $ AAPL_AdjClose      <dbl> 194.2821, 193.4514, 190.4548, 189.0603, 179.9817, 176.8763, 177.8158, 176.2236, 176.0060, 176.0655, 177.7193, 175.7287, 174.8…
+# $ AAPL_LogReturn     <dbl> NA, -0.42850854, -1.56113301, -0.73486465, -4.92111520, -1.74042619, 0.52976436, -0.89947611, -0.12353295, 0.03375321, 0.9349…
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8444, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 486.6…
+# $ UNH_LogReturn      <dbl> NA, -0.32240663, 0.01188633, 0.01187866, -0.42278818, 1.58074176, -0.96007723, -0.74406862, 0.27247494, 0.89572487, 0.5731350…
+# $ JPM_AdjClose       <dbl> 150.7004, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5025, 147.3517, 147.6570, 143.8980, 143.2…
+# $ JPM_LogReturn      <dbl> NA, -0.49506220, -1.13890250, 0.60946624, -0.21127840, 0.47315860, -0.56294772, -1.34984202, -0.14967144, 0.57791122, 0.20697…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 134.6…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.548531…
+# $ XOM_AdjClose       <dbl> 99.17884, 98.60544, 97.37541, 99.06787, 99.34530, 99.14185, 99.63200, 101.32444, 101.84236, 103.42381, 103.50704, 100.84968, …
+# $ XOM_LogReturn      <dbl> NA, -0.579827694, -1.255267946, 1.723144673, 0.279646613, -0.204996146, 0.493174960, 1.684420964, 0.509849607, 1.540909225, 0…
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.021…
 
 # Salva il training set
 write_csv(training_set, file.path(data_folder, "training_set_with_log_returns_and_rf.csv"))
@@ -652,55 +657,55 @@ for (col in risky_logreturn_cols) {
 }
 # Ljung-Box test per SPY_LogReturn (max_lag = 10):
 #            lag   lb_stat   lb_pvalue
-# X-squared    1  2.151799 0.142402974
-# X-squared1   2  5.359999 0.068563197
-# X-squared2   3 11.537234 0.009148828
-# X-squared3   4 13.431263 0.009349960
-# X-squared4   5 13.431468 0.019654094
-# X-squared5   6 14.167211 0.027823087
-# X-squared6   7 14.362075 0.045103743
-# X-squared7   8 14.641084 0.066511746
-# X-squared8   9 14.719625 0.098930951
-# X-squared9  10 14.899972 0.135751491
+# X-squared    1  2.151783 0.142404436
+# X-squared1   2  5.359924 0.068565753
+# X-squared2   3 11.537099 0.009149399
+# X-squared3   4 13.431106 0.009350599
+# X-squared4   5 13.431311 0.019655339
+# X-squared5   6 14.167045 0.027824832
+# X-squared6   7 14.361905 0.045106420
+# X-squared7   8 14.640916 0.066515391
+# X-squared8   9 14.719460 0.098935806
+# X-squared9  10 14.899806 0.135757691
 # 
 # Ljung-Box test per AAPL_LogReturn (max_lag = 10):
 #            lag   lb_stat  lb_pvalue
-# X-squared    1  0.626536 0.42862879
-# X-squared1   2  4.964292 0.08356372
-# X-squared2   3  7.676838 0.05318466
-# X-squared3   4  9.566887 0.04839087
-# X-squared4   5 12.968073 0.02367980
-# X-squared5   6 12.970345 0.04350930
-# X-squared6   7 13.913169 0.05274746
-# X-squared7   8 13.940614 0.08332647
-# X-squared8   9 14.335059 0.11089577
-# X-squared9  10 15.289106 0.12187167
+# X-squared    1  0.626539 0.42862768
+# X-squared1   2  4.964275 0.08356442
+# X-squared2   3  7.676790 0.05318580
+# X-squared3   4  9.566869 0.04839123
+# X-squared4   5 12.968045 0.02368007
+# X-squared5   6 12.970317 0.04350975
+# X-squared6   7 13.913139 0.05274801
+# X-squared7   8 13.940587 0.08332721
+# X-squared8   9 14.335040 0.11089639
+# X-squared9  10 15.289093 0.12187213
 # 
 # Ljung-Box test per UNH_LogReturn (max_lag = 10):
 #            lag  lb_stat  lb_pvalue
-# X-squared    1 4.662199 0.03083367
-# X-squared1   2 5.115029 0.07749714
-# X-squared2   3 5.115069 0.16356259
-# X-squared3   4 5.744857 0.21902999
-# X-squared4   5 5.830190 0.32309448
-# X-squared5   6 5.834089 0.44202997
-# X-squared6   7 6.084154 0.52995827
-# X-squared7   8 6.496059 0.59184484
-# X-squared8   9 7.219119 0.61431763
-# X-squared9  10 7.300999 0.69675598
+# X-squared    1 4.662181 0.03083400
+# X-squared1   2 5.115011 0.07749782
+# X-squared2   3 5.115051 0.16356381
+# X-squared3   4 5.744833 0.21903196
+# X-squared4   5 5.830167 0.32309681
+# X-squared5   6 5.834067 0.44203260
+# X-squared6   7 6.084130 0.52996099
+# X-squared7   8 6.496028 0.59184824
+# X-squared8   9 7.219088 0.61432086
+# X-squared9  10 7.300968 0.69675895
 # 
 # Ljung-Box test per JPM_LogReturn (max_lag = 10):
 #            lag      lb_stat lb_pvalue
-# X-squared    1 0.0006007107 0.9804463
-# X-squared1   2 1.7120331464 0.4248511
-# X-squared2   3 2.2020114559 0.5315523
-# X-squared3   4 4.0958341797 0.3931914
-# X-squared4   5 4.6500621622 0.4600600
-# X-squared5   6 6.0725623376 0.4151109
-# X-squared6   7 6.7365902699 0.4568116
-# X-squared7   8 8.4348048463 0.3921891
-# X-squared8   9 8.4397890389 0.4905039
-# X-squared9  10 8.6445328762 0.5661378
+# X-squared    1 0.0006003635 0.9804519
+# X-squared1   2 1.7120447819 0.4248486
+# X-squared2   3 2.2020371005 0.5315472
+# X-squared3   4 4.0958353652 0.3931913
+# X-squared4   5 4.6500451881 0.4600622
+# X-squared5   6 6.0725478018 0.4151125
+# X-squared6   7 6.7365862531 0.4568121
+# X-squared7   8 8.4347931495 0.3921901
+# X-squared8   9 8.4397775298 0.4905050
+# X-squared9  10 8.6445194268 0.5661391
 # 
 # Ljung-Box test per AMZN_LogReturn (max_lag = 10):
 #            lag   lb_stat lb_pvalue
@@ -717,16 +722,16 @@ for (col in risky_logreturn_cols) {
 # 
 # Ljung-Box test per XOM_LogReturn (max_lag = 10):
 #            lag     lb_stat lb_pvalue
-# X-squared    1  0.01160408 0.9142160
-# X-squared1   2  0.82284350 0.6627074
-# X-squared2   3  1.22021958 0.7481590
-# X-squared3   4  1.30738270 0.8601217
-# X-squared4   5  1.91841065 0.8603154
-# X-squared5   6  1.96407191 0.9229730
-# X-squared6   7  7.14305549 0.4141386
-# X-squared7   8  7.17297347 0.5180905
-# X-squared8   9 10.54229401 0.3083904
-# X-squared9  10 10.54875777 0.3937360
+# X-squared    1  0.01160248 0.9142219
+# X-squared1   2  0.82284725 0.6627061
+# X-squared2   3  1.22021074 0.7481611
+# X-squared3   4  1.30737030 0.8601238
+# X-squared4   5  1.91839871 0.8603170
+# X-squared5   6  1.96406215 0.9229739
+# X-squared6   7  7.14302627 0.4141416
+# X-squared7   8  7.17294803 0.5180932
+# X-squared8   9 10.54225782 0.3083931
+# X-squared9  10 10.54872111 0.3937391
 
 # Analizzando i p-value del test di Ljung-Box per ciascuna serie di log-return fino al lag 10, osserviamo che:
 # 
@@ -927,7 +932,7 @@ log_return_training <- training_set %>%
 # Esegue il test
 lr_test(log_return_training, alpha = 0.01)
 # Likelihood Ratio Test
-# Statistic: 1079.347437
+# Statistic: 1079.347085
 # p-value: 0
 # 
 # ** CONCLUSIONE: p-value <= 0.01 **
@@ -19970,13 +19975,6 @@ kpss_test_all(training_set, "Rf_Daily_LogReturn")
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati NON sono stazionari.
 
-# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
-# Possiamo affermare, con una significatività del 1%, che i dati non sono stazionari. Entrambi i test suggeriscono la presenza di una unit root:
-# la serie non può essere direttamente utilizzata per stimare un modello GARCH, ma è necessario prima trasformarla in una forma stazionaria.
-
-# Entrambi i test hanno dato lo stesso esito per tutte le possibili ipotesi alternative.
-# Le trasformazioni effettuate, indicano che la nuova serie dei log-rendimenti può essere considerata stazionaria.
-
 
 # Adesso, controlliamo anche la stazionarietà in varianza, ovvero se la serie è omoschedastica o eteroschedastica (incondizionatamente).
 # Per prima cosa, vediamo se c'è curtosi nei rendimenti logaritmici.
@@ -20015,9 +20013,6 @@ white_test(index_clean, group_clean, "Rf_Daily_LogReturn")
 # Possiamo rigettare l'ipotesi nulla con un livello di significatività del 1%
 # → I dati SONO eteroschedastici.
 
-# Visto che i due test ci forniscono risultati contrastanti, andiamo a vedere graficamente i rendimenti logaritmici per vedere se possiamo
-# trarre delle conclusioni.
-
 # Scatterplot dei rendimenti logaritmici nel tempo
 ggplot(training_set, aes(x = Date, y = Rf_Daily_LogReturn)) +
   geom_point(alpha = 0.6, color = "blue", na.rm = TRUE) +
@@ -20034,15 +20029,9 @@ ggplot(training_set, aes(x = Date, y = Rf_Daily_LogReturn)) +
     plot.subtitle = element_text(hjust = 0.5, size = 11)
   )
 
-# Dal grafico, negli ultimi mesi, si riesce a vedere una leggera volatilità crescente. Quindi, abbiamo un'evidenza
-# statistica (non fortissima) di eteroschedasticità non condizionata, in linea con quanto suggerito da Breusch-Pagan.
-
-# Alla luce dei risultati, possiamo rifiutare l'ipotesi nulla di omoschedasticità: c'è eteroschedasticità non condizionata.
-
 
 # Un'altra caratteristica tipica delle serie finanziarie è la presenza di autocorrelazione tra i rendimenti, cioè la dipendenza tra
 # osservazioni successive.
-# Questa analisi è già stata svolta precedentemente, ma la rifacciamo per evidenziare solo i risultati relativi al titolo XOM.
 
 # Test di Ljung-Box
 ljungbox_test(training_set[["Rf_Daily_LogReturn"]], col_name = "Rf_Daily_LogReturn")
@@ -20084,18 +20073,74 @@ arch_effects_test(training_set[["Rf_Daily_LogReturn"]], col_name = "Rf_Daily_Log
 
 # Alla luce dei risultati, possiamo affermare che abbiamo un rigetto dell'ipotesi nulla di assenza di effetti ARCH con un livello di
 # significatività dell'1% per tutti i lag.
-# Pertanto, costruiremo un modello GARCH per i rendimenti logaritmici percentuali dei prezzi di chiusura aggiustati giornalieri dello XOM
-# presenti nel training set.
+
+# Però, per i bond un modello GARCH non va bene perché abbiamo a che fare con un processo lento e quasi deterministico (l’ARCH test rileva
+# l’eteroschedasticità relativa alla a questa struttura deterministica).
 ##################################################################################################################################################
 
-# Riepilogo modelli GARCH:
+# Riepilogo modelli GARCH titoli rischiosi:
 # SPY: GARCH(4,1) sged
 # AAPL: GARCH(1,3) sstd
 # JPM: GARCH(1,0) sstd
 # AMZN: GARCH(1,1) sstd
 # XOM: GARCH(1,1) sged
 
-################################################### MODELLO GARCH MULTIVARIATO ###################################################################
+################################################### Modello GARCH Multivariato (DA FARE) ###################################################################
 ##################################################################################################################################################
+# Definire gli 'ugarchspec' per ogni titolo
+spec_SPY  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(4,1)),
+                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                        distribution.model = "sged")
 
+spec_AAPL <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,3)),
+                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                        distribution.model = "sstd")
+
+spec_JPM  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,0)),
+                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                        distribution.model = "sstd")
+
+spec_AMZN <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,1)),
+                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                        distribution.model = "sstd")
+
+spec_XOM  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,1)),
+                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                        distribution.model = "sged")
+
+# Mettere insieme i modelli in un 'multispec'
+uspec <- multispec(list(spec_SPY, spec_AAPL, spec_JPM, spec_AMZN, spec_XOM))
+
+# Definire il modello DCC e CCC
+dcc_spec <- dccspec(uspec = uspec, dccOrder = c(1,1),
+                    distribution = "mvt", model = "DCC")
+
+ccc_spec <- dccspec(uspec = uspec, dccOrder = c(1,1),
+                    distribution = "mvt", model = "CCC")
+
+# Stima del modello multivariato
+ret_mat <- training_set %>%
+  dplyr::select(SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn,
+                AMZN_LogReturn, XOM_LogReturn) %>%
+  as.matrix()
+
+ret_mat <- na.omit(ret_mat)
+
+dcc_fit <- dccfit(dcc_spec, data = ret_mat)
+ccc_fit <- dccfit(ccc_spec, data = ret_mat)
+
+# Output ed analisi
+R_t <- rcor(dcc_fit)
+
+Sigma_t <- rcov(dcc_fit)
+  
+dcc_fc <- dccforecast(dcc_fit, n.ahead = 1)
+  
+lik_dcc <- likelihood(dcc_fit)
+lik_ccc <- likelihood(ccc_fit)
+
+infocriteria(dcc_fit)
+infocriteria(ccc_fit)
+
+print(Sigma_t)
 ##################################################################################################################################################
