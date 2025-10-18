@@ -49,6 +49,16 @@ if (!require("qqplotr")) {
   install.packages("qqplotr")
   library(qqplotr)
 }
+
+if (!require("xts")) {
+  install.packages("xts")
+  library(xts)
+}
+
+if (!require("ggplot2")) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -20122,62 +20132,243 @@ glimpse(test_set)
 # Salva il test set
 write_csv(test_set, file.path(data_folder, "test_set_with_log_returns_and_rf.csv"))
 
-################################################### Modello GARCH Multivariato (DA FARE) ###################################################################
+################################################### Modello GARCH Multivariato ###################################################################
 ##################################################################################################################################################
-# Definire gli 'ugarchspec' per ogni titolo
-spec_SPY  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(4,1)),
-                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
-                        distribution.model = "sged")
+# Carica i dati del training set
+data_folder <- "../data"
+training_set <- read_csv(file.path(data_folder, "training_set_with_log_returns_and_rf.csv"))
 
-spec_AAPL <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,3)),
-                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
-                        distribution.model = "sstd")
+# Controllo rapido
+glimpse(training_set)
+# Rows: 475
+# Columns: 15
+# $ Index              <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34…
+# $ Date               <date> 2023-07-31, 2023-08-01, 2023-08-02, 2023-08-03, 2023-08-04, 2023-08-07, 2023-08-08, 2023-08-09, 2023-08-10, 2023-08-11, 2023…
+# $ SPY_AdjClose       <dbl> 445.9210, 444.6451, 438.4597, 437.2031, 435.2256, 439.0246, 437.1154, 434.1932, 434.3490, 434.0957, 436.4920, 431.4073, 428.2…
+# $ SPY_LogReturn      <dbl> NA, -0.28655287, -1.40085211, -0.28699682, -0.45332090, 0.86907467, -0.43580985, -0.67076615, 0.03587442, -0.05832620, 0.5504…
+# $ AAPL_AdjClose      <dbl> 194.2821, 193.4514, 190.4548, 189.0603, 179.9817, 176.8763, 177.8158, 176.2236, 176.0060, 176.0655, 177.7193, 175.7287, 174.8…
+# $ AAPL_LogReturn     <dbl> NA, -0.42850854, -1.56113301, -0.73486465, -4.92111520, -1.74042619, 0.52976436, -0.89947611, -0.12353295, 0.03375321, 0.9349…
+# $ UNH_AdjClose       <dbl> 489.3621, 487.7869, 487.8449, 487.9029, 485.8444, 493.5854, 488.8693, 485.2452, 486.5692, 490.9471, 493.7690, 489.6714, 486.6…
+# $ UNH_LogReturn      <dbl> NA, -0.32240663, 0.01188633, 0.01187866, -0.42278818, 1.58074176, -0.96007723, -0.74406862, 0.27247494, 0.89572487, 0.5731350…
+# $ JPM_AdjClose       <dbl> 150.7004, 149.9562, 148.2580, 149.1643, 148.8495, 149.5555, 148.7159, 146.7220, 146.5025, 147.3517, 147.6570, 143.8980, 143.2…
+# $ JPM_LogReturn      <dbl> NA, -0.49506220, -1.13890250, 0.60946624, -0.21127840, 0.47315860, -0.56294772, -1.34984202, -0.14967144, 0.57791122, 0.20697…
+# $ AMZN_AdjClose      <dbl> 133.68, 131.69, 128.21, 128.91, 139.57, 142.22, 139.94, 137.85, 138.56, 138.41, 140.57, 137.67, 135.07, 133.98, 133.22, 134.6…
+# $ AMZN_LogReturn     <dbl> NA, -1.49981352, -2.67810973, 0.54449179, 7.94518051, 1.88088430, -1.61613863, -1.50475950, 0.51372454, -0.10831058, 1.548531…
+# $ XOM_AdjClose       <dbl> 99.17884, 98.60544, 97.37541, 99.06787, 99.34530, 99.14185, 99.63200, 101.32444, 101.84236, 103.42381, 103.50704, 100.84968, …
+# $ XOM_LogReturn      <dbl> NA, -0.579827694, -1.255267946, 1.723144673, 0.279646613, -0.204996146, 0.493174960, 1.684420964, 0.509849607, 1.540909225, 0…
+# $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.021…
 
-spec_JPM  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,0)),
-                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
-                        distribution.model = "sstd")
+# Seleziona le colonne dei log-returns da usare e crea un oggetto xts
+rets_train <- training_set %>%
+  select(Date, SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn, AMZN_LogReturn, XOM_LogReturn, Rf_Daily_LogReturn) %>%
+  mutate(Date = as.Date(Date)) %>%
+  arrange(Date)
 
-spec_AMZN <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,1)),
-                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
-                        distribution.model = "sstd")
+rets_train <- rets_train %>% drop_na()
 
-spec_XOM  <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(1,1)),
-                        mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
-                        distribution.model = "sged")
+rets_xts_train <- xts(rets_train %>% select(-Date), order.by = rets_train$Date)
+colnames(rets_xts_train) <- c("SPY", "AAPL", "JPM", "AMZN", "XOM", "RF")
 
-# Mettere insieme i modelli in un 'multispec'
-uspec <- multispec(list(spec_SPY, spec_AAPL, spec_JPM, spec_AMZN, spec_XOM))
+# Separazione asset rischiosi e risk-free
+y_train <- rets_xts_train[, c("SPY", "AAPL", "JPM", "AMZN", "XOM")]
+rf_train <- rets_xts_train[, "RF"]
+N <- ncol(y_train)
+dates_train <- index(y_train)
 
-# Definire il modello DCC e CCC
-dcc_spec <- dccspec(uspec = uspec, dccOrder = c(1,1),
-                    distribution = "mvt", model = "DCC")
+# Specifica dei GARCH univariati
+spec_SPY <- ugarchspec(variance.model=list(model="sGARCH", garchOrder=c(4,1)),
+                       mean.model=list(armaOrder=c(0,0)), distribution.model="sged")
 
-ccc_spec <- dccspec(uspec = uspec, dccOrder = c(1,1),
-                    distribution = "mvt", model = "CCC")
+spec_AAPL <- ugarchspec(variance.model=list(model="sGARCH", garchOrder=c(1,3)),
+                        mean.model=list(armaOrder=c(0,0)), distribution.model="sstd")
 
-# Stima del modello multivariato
-ret_mat <- training_set %>%
-  dplyr::select(SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn,
-                AMZN_LogReturn, XOM_LogReturn) %>%
-  as.matrix()
+spec_JPM <- ugarchspec(variance.model=list(model="sGARCH", garchOrder=c(1,0)),
+                       mean.model=list(armaOrder=c(0,0)), distribution.model="sstd")
 
-ret_mat <- na.omit(ret_mat)
+spec_AMZN <- ugarchspec(variance.model=list(model="sGARCH", garchOrder=c(1,1)),
+                        mean.model=list(armaOrder=c(0,0)), distribution.model="sstd")
 
-dcc_fit <- dccfit(dcc_spec, data = ret_mat)
-ccc_fit <- dccfit(ccc_spec, data = ret_mat)
+spec_XOM <- ugarchspec(variance.model=list(model="sGARCH", garchOrder=c(1,1)),
+                       mean.model=list(armaOrder=c(0,0)), distribution.model="sged")
 
-# Output ed analisi
-R_t <- rcor(dcc_fit)
+# Specifica multivariata DCC-GARCH
+uspec_list <- multispec(list(spec_SPY, spec_AAPL, spec_JPM, spec_AMZN, spec_XOM))
 
-Sigma_t <- rcov(dcc_fit)
-  
-dcc_fc <- dccforecast(dcc_fit, n.ahead = 1)
-  
-lik_dcc <- likelihood(dcc_fit)
-lik_ccc <- likelihood(ccc_fit)
+dcc_spec <- dccspec(uspec = uspec_list,
+                    dccOrder = c(1,1),
+                    distribution = "mvnorm") # distribuzione multivariata
 
-infocriteria(dcc_fit)
-infocriteria(ccc_fit)
+# Stima DCC
+dcc_fit_train <- dccfit(dcc_spec,
+                        data = coredata(y_train),
+                        fit.control = list(eval.se = TRUE, trace = 1))
 
-print(Sigma_t)
+# Controlla risultati della stima
+dcc_fit_train
+# 
+# *---------------------------------*
+# *          DCC GARCH Fit          *
+# *---------------------------------*
+#   
+# Distribution         :  mvnorm
+# Model                :  DCC(1,1)
+# No. Parameters       :  46
+# [VAR GARCH DCC UncQ] : [0+34+2+10]
+# No. Series           :  5
+# No. Obs.             :  471
+# Log-Likelihood       :  -3714.39
+# Av.Log-Likelihood    :  -7.89 
+# 
+# Optimal Parameters
+# -----------------------------------
+#                Estimate  Std. Error   t value Pr(>|t|)
+# [SPY].mu       0.067634    0.043310  1.561627 0.118376
+# [SPY].omega    0.115239    0.043008  2.679454 0.007374
+# [SPY].alpha1   0.047013    0.056638  0.830058 0.406506
+# [SPY].alpha2   0.000000    0.057031  0.000000 1.000000
+# [SPY].alpha3   0.071625    0.081297  0.881031 0.378301
+# [SPY].alpha4   0.167567    0.119743  1.399390 0.161696
+# [SPY].beta1    0.591876    0.085865  6.893115 0.000000
+# [SPY].skew     0.894818    0.083027 10.777493 0.000000
+# [SPY].shape    1.294930    0.143277  9.037956 0.000000
+# [AAPL].mu      0.003715    0.071943  0.051639 0.958816
+# [AAPL].omega   0.682214    0.606587  1.124676 0.260726
+# [AAPL].alpha1  0.201811    0.096905  2.082569 0.037290
+# [AAPL].beta1   0.000000    0.416747  0.000000 1.000000
+# [AAPL].beta2   0.215210    0.248909  0.864614 0.387251
+# [AAPL].beta3   0.351247    0.355741  0.987368 0.323462
+# [AAPL].skew    0.858799    0.050965 16.850838 0.000000
+# [AAPL].shape   3.912615    0.746541  5.240992 0.000000
+# [JPM].mu       0.159622    0.061413  2.599157 0.009345
+# [JPM].omega    1.735981    0.396689  4.376177 0.000012
+# [JPM].alpha1   0.207129    0.102041  2.029857 0.042371
+# [JPM].skew     0.939709    0.061380 15.309698 0.000000
+# [JPM].shape    3.314933    0.586355  5.653462 0.000000
+# [AMZN].mu      0.100780    0.080673  1.249245 0.211575
+# [AMZN].omega   0.549772    0.276587  1.987701 0.046845
+# [AMZN].alpha1  0.095121    0.048642  1.955546 0.050519
+# [AMZN].beta1   0.756977    0.097013  7.802843 0.000000
+# [AMZN].skew    0.979772    0.077998 12.561539 0.000000
+# [AMZN].shape   5.275035    1.125247  4.687890 0.000003
+# [XOM].mu       0.026853    0.064413  0.416888 0.676760
+# [XOM].omega    0.376483    0.242506  1.552472 0.120549
+# [XOM].alpha1   0.077080    0.044830  1.719402 0.085541
+# [XOM].beta1    0.721316    0.155968  4.624761 0.000004
+# [XOM].skew     0.934937    0.054514 17.150257 0.000000
+# [XOM].shape    1.550761    0.177969  8.713647 0.000000
+# [Joint]dcca1   0.012961    0.003699  3.503367 0.000459
+# [Joint]dccb1   0.972200    0.011193 86.858134 0.000000
+# 
+# Information Criteria
+# ---------------------
+#   
+# Akaike       15.968
+# Bayes        16.373
+# Shibata      15.951
+# Hannan-Quinn 16.127
+# 
+# 
+# Elapsed time : 11.81565
+#
+
+# Matrici di covarianza condizionate H_t (array: N x N x T)
+Ht_array <- rcov(dcc_fit_train)  # restituisce H_t per ogni t
+
+# Matrici di correlazione dinamiche R_t (array: N x N x T)
+R_t_array <- rcor(dcc_fit_train)
+
+# Serie delle varianze condizionate per ogni asset (t x N)
+ht_matrix <- do.call(cbind, lapply(1:N, function(i) sigma(dcc_fit_train)[,i]^2))
+colnames(ht_matrix) <- colnames(y_train)
+
+# Estrai la correlazione SPY-AAPL (pos 1 e 2)
+corr_SPY_AAPL <- sapply(1:dim(R_t_array)[3], function(t) R_t_array[1,2,t])
+corr_df <- data.frame(Date = dates_train, Corr = corr_SPY_AAPL)
+
+ggplot(corr_df, aes(x=Date, y=Corr)) +
+  geom_line() + theme_minimal() +
+  labs(title = "Correlazione dinamica SPY - AAPL (DCC)", y=expression(rho[t]), x=expression(t))
+
+# Mostriamo, adesso, tutte le correlazioni dinamiche:
+
+# Nomi degli asset
+asset_names <- colnames(y_train)
+N <- length(asset_names)
+
+# Crea una lista di tutte le coppie di asset (senza ripetizioni)
+asset_pairs <- combn(asset_names, 2, simplify = FALSE)
+
+# Estrai le correlazioni dinamiche per tutte le coppie
+corr_list <- lapply(asset_pairs, function(pair) {
+  i <- which(asset_names == pair[1])
+  j <- which(asset_names == pair[2])
+  corr_values <- sapply(1:dim(R_t_array)[3], function(t) R_t_array[i,j,t])
+  data.frame(Date = dates_train,
+             Asset1 = pair[1],
+             Asset2 = pair[2],
+             Corr = corr_values)
+})
+
+# Unisci tutte le coppie in un unico data frame
+corr_all_df <- bind_rows(corr_list)
+
+# Crea un grafico per tutte le coppie (facetted plot) con linea a 0
+ggplot(corr_all_df, aes(x = Date, y = Corr)) +
+  geom_line(color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +  # linea orizzontale a 0
+  facet_wrap(~ paste(Asset1, Asset2, sep = " - "), scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Correlazioni dinamiche tra tutti gli asset (DCC)",
+       y = expression(rho[t]),
+       x = expression(t))
+
+# Calcola la matrice media delle correlazioni dinamiche
+R_mean <- apply(R_t_array, c(1, 2), mean)  # media su tutte le date
+
+# Converti in formato "long" per ggplot
+R_mean_df <- as.data.frame(R_mean)
+R_mean_df$Asset1 <- rownames(R_mean_df)
+
+R_mean_long <- R_mean_df %>%
+  pivot_longer(cols = -Asset1, names_to = "Asset2", values_to = "Correlation") %>%
+  mutate(
+    Asset1 = factor(Asset1, levels = colnames(y_train)),
+    Asset2 = factor(Asset2, levels = colnames(y_train))
+  )
+
+# Heatmap
+ggplot(R_mean_long, aes(x = Asset1, y = Asset2, fill = Correlation)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                       midpoint = 0, limits = c(-1, 1)) +
+  labs(title = "Matrice media di correlazione DCC-GARCH",
+       x = "", y = "", fill = expression(bar(rho))) +
+  theme_minimal(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank())
+##################################################################################################################################################
+
+################################################### Analisi Portafogli (DA FARE) ###########################################################################
+##################################################################################################################################################
+A
+##################################################################################################################################################
+
+################################################### Analisi delle Performance ####################################################################
+##################################################################################################################################################
+portfolio_metrics <- function(Rp, Rf) {
+  excess <- Rp - Rf
+  mean_ret <- mean(Rp)
+  vol <- sd(Rp)
+  sharpe <- mean(excess) / vol
+  VaR <- quantile(Rp, probs=0.05)
+  cum_ret <- cumprod(1 + Rp) - 1
+  max_dd <- maxDrawdown(Rp)
+  return(data.frame(Mean=mean_ret, Vol=vol, Sharpe=sharpe, VaR=VaR, MaxDrawdown=max_dd))
+}
+
+perf_active <- portfolio_metrics(R_portfolio, Rf)
+perf_benchmark <- portfolio_metrics(R_benchmark, Rf)
+
+performance_comparison <- rbind(Active_Portfolio=perf_active, Benchmark=perf_benchmark)
+print(performance_comparison)
 ##################################################################################################################################################
