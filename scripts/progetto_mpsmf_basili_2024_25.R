@@ -79,6 +79,11 @@ if (!require("forecast")) {
   install.packages("forecast")
   library(forecast)
 }
+
+if (!require("quadprog")) {
+  install.packages("quadprog")
+  library(quadprog)
+}
 ##################################################################################################################################################
 
 ################################################### Environmental Setting ########################################################################
@@ -20178,35 +20183,8 @@ glimpse(training_set)
 # $ XOM_LogReturn      <dbl> NA, -0.579827694, -1.255267946, 1.723144673, 0.279646613, -0.204996146, 0.493174960, 1.684420964, 0.509849607, 1.540909225, 0…
 # $ Rf_Daily_LogReturn <dbl> 0.02151976, 0.02148201, 0.02144426, 0.02148201, 0.02148201, 0.02155750, 0.02159524, 0.02151976, 0.02148201, 0.02148201, 0.021…
 
-# Carica i dati del test set
-test_set <- read_csv(file.path(data_folder, "test_set_with_log_returns_and_rf.csv"))
-
-# Controllo rapido
-glimpse(test_set)
-# Rows: 44
-# Columns: 16
-# $ Index                <dbl> 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500…
-# $ Date                 <date> 2025-06-23, 2025-06-24, 2025-06-25, 2025-06-26, 2025-06-27, 2025-06-30, 2025-07-01, 2025-07-02, 2025-07-03, 2025-07-07, 20…
-# $ SPY_AdjClose         <dbl> 600.15, 606.78, 607.12, 611.87, 614.91, 617.85, 617.65, 620.45, 625.34, 620.68, 620.34, 624.06, 625.82, 623.62, 624.81, 622…
-# $ SPY_LogReturn        <dbl> 0.982902658, 1.098667077, 0.056012163, 0.779337661, 0.495603829, 0.476979808, -0.032367653, 0.452304738, 0.785050387, -0.74…
-# $ AAPL_AdjClose        <dbl> 201.2716, 200.0729, 201.3315, 200.7721, 200.8521, 204.9374, 207.5844, 212.1992, 213.3079, 209.7120, 209.7719, 210.9007, 212…
-# $ AAPL_LogReturn       <dbl> 0.24844845, -0.59731350, 0.62708800, -0.27822294, 0.03979356, 2.01360366, 1.28334521, 2.19872688, 0.52114379, -1.70016518, …
-# $ UNH_AdjClose         <dbl> 300.68, 305.62, 302.02, 302.62, 309.11, 311.97, 326.14, 307.56, 308.55, 303.71, 307.70, 302.91, 299.51, 304.10, 300.58, 291…
-# $ UNH_LogReturn        <dbl> -0.4413610, 1.6295932, -1.1849280, 0.1984673, 2.1219276, 0.9209880, 4.4419749, -5.8656600, 0.3213683, -1.5810595, 1.3052051…
-# $ JPM_AdjClose         <dbl> 276.9358, 279.9115, 282.6981, 287.3656, 285.7334, 288.5200, 289.0176, 290.6000, 296.0000, 291.9700, 282.7800, 283.1600, 288…
-# $ JPM_LogReturn        <dbl> 1.18208103, 1.06876902, 0.99059207, 1.63757695, -0.56958589, 0.97051657, 0.17231405, 0.54601563, 1.84116822, -1.37083929, -…
-# $ AMZN_AdjClose        <dbl> 208.47, 212.77, 211.99, 217.12, 223.30, 219.39, 220.46, 219.92, 223.41, 223.47, 219.36, 222.54, 222.26, 225.02, 225.69, 226…
-# $ AMZN_LogReturn       <dbl> -0.58351094, 2.04166383, -0.36726605, 2.39110439, 2.80659989, -1.76652073, 0.48653378, -0.24524675, 1.57448293, 0.02685175,…
-# $ XOM_AdjClose         <dbl> 110.7098, 107.3411, 107.3709, 108.9759, 108.3716, 106.8061, 108.2328, 110.0262, 111.1656, 110.0856, 113.1372, 112.7508, 113…
-# $ XOM_LogReturn        <dbl> -2.61452694, -3.09003047, 0.02768743, 1.48381559, -0.55614103, -1.45503683, 1.32695999, 1.64333192, 1.03023665, -0.97622717…
-# $ Rf_Daily_LogReturn   <dbl> 0.01707884, 0.01707884, 0.01707884, 0.01711701, 0.01711701, 0.01719333, 0.01715518, 0.01719333, 0.01723149, 0.01723149, 0.0…
-# $ Rf_LogReturn_Assumed <dbl> 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.0…
-
-# Unisci training set e test set per avere tutti i log-return
-all_data <- bind_rows(training_set, test_set)
-
 # Seleziona i log-return dei titoli da includere nella DCC
-dcc_assets <- all_data %>% 
+dcc_assets <- training_set %>% 
   select(Date, SPY_LogReturn, AAPL_LogReturn, JPM_LogReturn, AMZN_LogReturn, XOM_LogReturn)
 
 # Rimuove eventuali NA iniziali
@@ -20244,14 +20222,10 @@ dcc_spec <- dccspec(uspec = uspec_list,
                     dccOrder = c(1,1), 
                     distribution = "mvt")  # distribuzione multivariata t
 
-# Numero di giorni del test set
-n_test <- nrow(test_set)
-
-# Fitting del DCC-GARCH sul training set, riservando come out.sample i giorni del test set
+# Fitting del DCC-GARCH sul training set
 dcc_fit <- dccfit(
   dcc_spec,
-  data = dcc_returns_matrix,
-  out.sample = n_test # riserva il test set per rolling forecast
+  data = dcc_returns_matrix
 )
 
 # Estrae le covarianze condizionate (H_t) giorno per giorno
@@ -20337,11 +20311,6 @@ ggplot(correlation_df, aes(x = Date, y = SPY_AAPL)) +
        x = "Data", y = "Correlazione dinamica")
 
 
-# Stimiamo la covarianza condizionata prevista per il test set (utile per la costruzione dei portafogli)
-dcc_forecast <- dccforecast(dcc_fit, n.ahead = 1, n.roll = n_test)
-H_forecast <- rcov(dcc_forecast)
-
-
 # Diagnostica
 checkresiduals(dcc_fit@mfit$stdresid[,1])  # per SPY
 # 
@@ -20392,374 +20361,443 @@ checkresiduals(dcc_fit@mfit$stdresid[,5])  # per XOM
 # Salvataggio
 saveRDS(H_t, file = "../data/H_t_dcc_garch.rds")
 saveRDS(R_t, file = "../data/R_t_dcc_garch.rds")
-saveRDS(correlation_list, file = "../data/R_t_dcc_garch_with_dates.rds")
-saveRDS(H_forecast, "../data/H_forecast_dcc_garch.rds")
 ##################################################################################################################################################
+
+# Carica i dati del test set
+test_set <- read_csv(file.path(data_folder, "test_set_with_log_returns_and_rf.csv"))
+
+# Controllo rapido
+glimpse(test_set)
+# Rows: 44
+# Columns: 16
+# $ Index                <dbl> 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500…
+# $ Date                 <date> 2025-06-23, 2025-06-24, 2025-06-25, 2025-06-26, 2025-06-27, 2025-06-30, 2025-07-01, 2025-07-02, 2025-07-03, 2025-07-07, 20…
+# $ SPY_AdjClose         <dbl> 600.15, 606.78, 607.12, 611.87, 614.91, 617.85, 617.65, 620.45, 625.34, 620.68, 620.34, 624.06, 625.82, 623.62, 624.81, 622…
+# $ SPY_LogReturn        <dbl> 0.982902658, 1.098667077, 0.056012163, 0.779337661, 0.495603829, 0.476979808, -0.032367653, 0.452304738, 0.785050387, -0.74…
+# $ AAPL_AdjClose        <dbl> 201.2716, 200.0729, 201.3315, 200.7721, 200.8521, 204.9374, 207.5844, 212.1992, 213.3079, 209.7120, 209.7719, 210.9007, 212…
+# $ AAPL_LogReturn       <dbl> 0.24844845, -0.59731350, 0.62708800, -0.27822294, 0.03979356, 2.01360366, 1.28334521, 2.19872688, 0.52114379, -1.70016518, …
+# $ UNH_AdjClose         <dbl> 300.68, 305.62, 302.02, 302.62, 309.11, 311.97, 326.14, 307.56, 308.55, 303.71, 307.70, 302.91, 299.51, 304.10, 300.58, 291…
+# $ UNH_LogReturn        <dbl> -0.4413610, 1.6295932, -1.1849280, 0.1984673, 2.1219276, 0.9209880, 4.4419749, -5.8656600, 0.3213683, -1.5810595, 1.3052051…
+# $ JPM_AdjClose         <dbl> 276.9358, 279.9115, 282.6981, 287.3656, 285.7334, 288.5200, 289.0176, 290.6000, 296.0000, 291.9700, 282.7800, 283.1600, 288…
+# $ JPM_LogReturn        <dbl> 1.18208103, 1.06876902, 0.99059207, 1.63757695, -0.56958589, 0.97051657, 0.17231405, 0.54601563, 1.84116822, -1.37083929, -…
+# $ AMZN_AdjClose        <dbl> 208.47, 212.77, 211.99, 217.12, 223.30, 219.39, 220.46, 219.92, 223.41, 223.47, 219.36, 222.54, 222.26, 225.02, 225.69, 226…
+# $ AMZN_LogReturn       <dbl> -0.58351094, 2.04166383, -0.36726605, 2.39110439, 2.80659989, -1.76652073, 0.48653378, -0.24524675, 1.57448293, 0.02685175,…
+# $ XOM_AdjClose         <dbl> 110.7098, 107.3411, 107.3709, 108.9759, 108.3716, 106.8061, 108.2328, 110.0262, 111.1656, 110.0856, 113.1372, 112.7508, 113…
+# $ XOM_LogReturn        <dbl> -2.61452694, -3.09003047, 0.02768743, 1.48381559, -0.55614103, -1.45503683, 1.32695999, 1.64333192, 1.03023665, -0.97622717…
+# $ Rf_Daily_LogReturn   <dbl> 0.01707884, 0.01707884, 0.01707884, 0.01711701, 0.01711701, 0.01719333, 0.01715518, 0.01719333, 0.01723149, 0.01723149, 0.0…
+# $ Rf_LogReturn_Assumed <dbl> 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.01706839, 0.0…
 
 ################################################### Costruzione Portafoglio Titoli + Bond ########################################################
 ######################################### Asset: AAPL, JPM, AMZN, XOM + Bond (Rf_LogReturn_Assumed) ##############################################
 ##################################################################################################################################################
-# Carica la matrice di covarianza dal DCC già stimato
+# Asset rischiosi
+risky_assets <- c("AAPL_LogReturn", "JPM_LogReturn", "AMZN_LogReturn", "XOM_LogReturn")
+
+# Estrazione rendimenti logaritmici giornalieri dal training set
+risky_returns <- training_set %>% select(all_of(risky_assets))
+n_risky <- ncol(risky_returns)
+
+# Rendimenti attesi giornalieri (media storica) e annualizzati
+mu_daily <- colMeans(risky_returns, na.rm = TRUE)
+mu_annual <- mu_daily * 251  # approssimazione giornaliera -> annuale
+
+# Caricamento matrice di covarianza condizionata dal DCC-GARCH
 H_t <- readRDS("../data/H_t_dcc_garch.rds")
 
-# Seleziona solo gli asset del portafoglio (escludendo SPY)
-asset_names <- c("AAPL_LogReturn", "JPM_LogReturn", "AMZN_LogReturn", "XOM_LogReturn")
+# Covarianza media nel tempo
+H_avg <- apply(H_t[risky_assets, risky_assets, ], c(1,2), mean)
+is_pos_def(H_avg)  # controllo positività definita
+# [1] TRUE
 
-dcc_returns_sub <- dcc_returns %>%
-  select(Date, all_of(asset_names))
+# Tasso risk-free giornaliero (assunto)
+Rf_daily <- mean(test_set$Rf_LogReturn_Assumed, na.rm = TRUE)
+Rf_annual <- Rf_daily * 251  # annualizzazione
 
-# Media dei rendimenti attesi annualizzati (dati giornalieri -> annualizzati)
-mu_daily <- colMeans(dcc_returns_sub %>% select(-Date), na.rm = TRUE)
-mu_annual <- mu_daily * 251
-mu_annual
-# AAPL_LogReturn  JPM_LogReturn AMZN_LogReturn  XOM_LogReturn 
-#       7.703528      32.749990      26.048481       5.578443
+# Portafoglio minimo rischio (solo risky assets).
+#
+# Problema di ottimizzazione: min (σ_p)^2 = w'Σw s.t. sum(w) = 1
+#
+# - w = vettore dei pesi degli assset
+# - Σ = matrice di covarianza dei rendimenti degli asset
+# - (σ_p)^2 = varianza del portafoglio
+#
+#
+# Il pacchetto quadprog in R risolve problemi di programmazione quadratica della forma:
+# 
+# min 1/2 * w'Dw - d'w soggetto a A'w >= b
+# ⁡
+# - D matrice quadratica (deve essere positiva definita)
+# - d = termine lineare
+# - A, b = vincoli lineari
+#
+Dmat <- 2 * H_avg
+dvec <- rep(0, n_risky) # nessun termine lineare
+Amat <- cbind(rep(1, n_risky))  # vincolo somma pesi = 1
+bvec <- 1
+res_mvp <- solve.QP(Dmat, dvec, Amat, bvec, meq = 1)
+w_mvp <- res_mvp$solution
+names(w_mvp) <- risky_assets
 
-# Matrice di covarianza media nel tempo (covarianza di lungo periodo)
-Sigma_long_full <- apply(H_t, c(1, 2), mean, na.rm = TRUE)
-Sigma_long <- Sigma_long_full[asset_names, asset_names]
+# Rendimento e volatilità del portafoglio minimo rischio
+ret_mvp <- sum(w_mvp * mu_annual)
+vol_mvp <- sqrt(t(w_mvp) %*% H_avg %*% w_mvp)
 
-# Controllo di positività definita
-is_pos_def <- all(eigen(Sigma_long, symmetric = TRUE)$values > 0)
-if (!is_pos_def) warning("Sigma_long non è definita positiva!")
-
-# Usa Rf_LogReturn_Assumed come tasso privo di rischio
-rf_daily <- mean(test_set$Rf_LogReturn_Assumed, na.rm = TRUE)
-rf_annual <- rf_daily * 251
-rf_annual
-# [1] 4.284167
-
-# Calcolo portafoglio di minimo rischio
-one_vec <- rep(1, length(mu_annual))
-
-w_min <- solve(Sigma_long) %*% one_vec
-w_min <- w_min / as.numeric(t(one_vec) %*% solve(Sigma_long) %*% one_vec)
-w_min <- as.vector(w_min)
-names(w_min) <- names(mu_annual)
-w_min
+cat("Portafoglio Minimo Rischio (Titoli solo):\n")
+# Portafoglio Minimo Rischio (Titoli solo):
+print(w_mvp)
 # AAPL_LogReturn  JPM_LogReturn AMZN_LogReturn  XOM_LogReturn 
 #      0.2098855      0.1871487      0.1388887      0.4640771
+cat("Rendimento atteso annualizzato:", round(ret_mvp,4), "\n")
+# Rendimento atteso annualizzato: 12.9347
+cat("Volatilità annualizzata:", round(vol_mvp,4), "\n")
+# Volatilità annualizzata: 1.0564
 
-# Rendimento e rischio del portafoglio minimo rischio
-ret_min <- sum(w_min * mu_annual)
-vol_min <- sqrt(t(w_min) %*% Sigma_long %*% w_min)
-
-cat("Portafoglio di minimo rischio:\n")
-# Portafoglio di minimo rischio:
-cat("Rendimento atteso annuale:", round(ret_min, 4), "\n")
-# Rendimento atteso annuale: 13.9526
-cat("Volatilità annuale:", round(vol_min, 4), "\n")
-# Volatilità annuale: 1.0564
-cat("Pesi:\n")
-# Pesi:
-print(round(w_min, 3))
-# AAPL_LogReturn  JPM_LogReturn AMZN_LogReturn  XOM_LogReturn 
-#          0.210          0.187          0.139          0.464
-
-# Portafoglio tangente (CML)
-excess_mu <- mu_annual - rf_annual
-
-w_tan <- solve(Sigma_long) %*% excess_mu
-w_tan <- w_tan / as.numeric(t(one_vec) %*% solve(Sigma_long) %*% excess_mu)
-w_tan <- as.vector(w_tan)
-names(w_tan) <- names(mu_annual)
-
-# Metriche del portafoglio tangente
-ret_tan <- sum(w_tan * mu_annual)
-vol_tan <- sqrt(t(w_tan) %*% Sigma_long %*% w_tan)
-sharpe_tan <- (ret_tan - rf_annual) / vol_tan
-
-cat("\nPortafoglio tangente (CML):\n")
+# Portafoglio tangente (massimizzazione Sharpe ratio).
+# 
+# Sharpe Ratio = (E_(R_p) - R_f) / σ_p
 #
-# Portafoglio tangente (CML):
-cat("Rendimento atteso annuale:", round(ret_tan, 4), "\n")
-# Rendimento atteso annuale: 49.9109
-cat("Volatilità annuale:", round(vol_tan, 4), "\n")
-# Volatilità annuale: 2.2949
-cat("Sharpe ratio:", round(sharpe_tan, 4), "\n")
-# Sharpe ratio: 19.8818
-cat("Pesi:\n")
-# Pesi:
-print(round(w_tan, 3))
+# - E_(R_p) = rendimento del portafoglio
+# - R_f = tasso privo di rischio
+# 
+excess_mu <- mu_annual - Rf_annual
+w_tangent_risky <- solve(H_avg) %*% excess_mu
+w_tangent_risky <- as.numeric(w_tangent_risky / sum(w_tangent_risky))  # normalizzazione
+names(w_tangent_risky) <- risky_assets
+
+# Rendimento e volatilità del portafoglio tangente (solo risky)
+ret_tangent <- sum(w_tangent_risky * mu_annual)
+vol_tangent <- sqrt(t(w_tangent_risky) %*% H_avg %*% w_tangent_risky)
+sharpe_tangent <- (ret_tangent - Rf_annual) / vol_tangent
+
+cat("\nPortafoglio Tangente (Titoli solo):\n")
+#
+# Portafoglio Tangente (Titoli solo):
+print(w_tangent_risky)
 # AAPL_LogReturn  JPM_LogReturn AMZN_LogReturn  XOM_LogReturn 
-#         -0.347          1.336          0.428         -0.418
+#    -0.6718629      1.4432849      0.5217984     -0.2932204
+cat("Rendimento:", round(ret_tangent,4), "Volatilità:", round(vol_tangent,4), "Sharpe:", round(sharpe_tangent,4), "\n")
+# Rendimento: 54.7581 Volatilità: 2.5518 Sharpe: 19.7798
 
-# Frontiera efficiente:
-# Simulazione di portafogli casuali
-set.seed(123)  # per riproducibilità
+# Simulazione portafogli casuali
+set.seed(123456)
+n_portf <- 10000
+random_weights <- t(replicate(n_portf, {
+  w <- runif(n_risky)
+  w <- w / sum(w)
+  w
+}))
 
-n_portfolios <- 10000  # numero di portafogli casuali
-n_assets <- length(mu_annual)
+# Calcolo rendimento e volatilità per ogni portafoglio
+portf_returns <- random_weights %*% mu_annual
+portf_vols <- apply(random_weights, 1, function(w) sqrt(t(w) %*% H_avg %*% w))
 
-# Generazione pesi casuali
-random_weights <- matrix(NA, nrow = n_portfolios, ncol = n_assets)
-for (i in 1:n_portfolios) {
-  w <- runif(n_assets)        # pesi casuali uniformi
-  w <- w / sum(w)             # normalizzazione perché sommino a 1
-  random_weights[i, ] <- w
+portfolios_df <- data.frame(Return = portf_returns, Volatility = portf_vols)
+
+# Visualizzazione simulazione + MVP
+ggplot(portfolios_df, aes(x = Volatility, y = Return)) +
+  geom_point(alpha = 1, color = "lightblue") +
+  # MVP
+  annotate("point", x = vol_mvp, y = ret_mvp, color = "red", size = 2) +
+  annotate("text", x = vol_mvp, y = ret_mvp, label = "MVP", color = "red", vjust = -1) +
+  theme_minimal() +
+  labs(title = "Simulazione di Portafogli Casuali e Portafoglio di Minimo Rischio (MVP)",
+       subtitle = "Portafoglio AAPL, JPM, AMZN, XOM + Bond",
+       x = "Volatilità annualizzata (%)", y = "Rendimento atteso annualizzato (%)")
+
+# Calcolo frontiera efficiente. Problema: min w'Σw s.t. sum(w)=1 e w'μ=R_target
+Dmat <- 2 * as.matrix(H_avg)
+dvec <- rep(0, n_risky)
+
+# Vincoli: somma pesi = 1, rendimento target = R_target
+A_base <- cbind(rep(1, n_risky), mu_annual) # colonne = vincoli
+meq <- 2 # entrambi i vincoli in uguaglianza
+
+# Griglia di rendimenti target (tra MVP e rendimento massimo dei titoli)
+R_min <- ret_mvp
+R_max <- max(mu_annual) * 3
+target_returns <- seq(R_min, R_max, length.out = 100)
+
+# Salvataggio risultati
+frontier_points <- data.frame(Return = numeric(), Volatility = numeric())
+
+for (R_target in target_returns) {
+  bvec <- c(1, R_target)
+  sol <- tryCatch(
+    solve.QP(Dmat, dvec, A_base, bvec, meq = meq),
+    error = function(e) NULL
+  )
+  if (!is.null(sol)) {
+    w <- sol$solution
+    sigma_p <- sqrt(t(w) %*% H_avg %*% w)
+    mu_p <- sum(w * mu_annual)
+    frontier_points <- rbind(frontier_points, data.frame(Return = mu_p, Volatility = sigma_p))
+  }
 }
 
-# Calcolo rendimento e volatilità di ciascun portafoglio
-port_returns <- random_weights %*% mu_annual
-port_vols <- apply(random_weights, 1, function(w) sqrt(t(w) %*% Sigma_long %*% w))
-
-# Data frame dei portafogli
-random_df <- data.frame(Return = port_returns, Volatility = port_vols)
-
-# Grafico portafogli casuali + portafoglio minimo rischio
-# Data frame per il punto Min Risk
-min_risk_df <- data.frame(
-  Volatility = vol_min,
-  Return = ret_min,
-  Type = "Min Risk"
+# Costruisci la Capital Market Line (CML): Rappresenta le combinazioni ottimali tra portafoglio risk-free e portafoglio tangente.
+#
+# E(R_c) = R_f + [(E_(R_t) - R_f) / σ_t] * σ_c
+#
+# - E(R_c) = rendimento del portafoglio combinato
+# - R_f = rendimento privo di rischio
+# - E(R_t), σ_t = rendimento e rischio del portafoglio tangente
+# - σ_c = rischio del portafoglio combinato
+#
+vol_range <- seq(0, max(frontier_points$Volatility), length.out = 100)
+CML <- data.frame(
+  Volatility = vol_range,
+  Return = Rf_annual + c(sharpe_tangent) * vol_range
 )
 
-# Aggiungiamo anche la categoria per i portafogli casuali
-random_df$Type <- "Random Portfolios"
-
-# Uniamo i dati
-plot_df <- rbind(
-  random_df,
-  min_risk_df
-)
-
-# Grafico con legenda
-ggplot(plot_df, aes(x = Volatility, y = Return, color = Type)) +
-  geom_point(data = subset(plot_df, Type == "Random Portfolios"), alpha = 0.3) +  # portafogli casuali blu trasparenti
-  geom_point(data = subset(plot_df, Type == "Min Risk"), size = 4) +  # portafoglio minimo rischio
-  scale_color_manual(
-    values = c("Random Portfolios" = "blue", "Min Risk" = "red"),
-    name = "Tipo di Portafoglio"
-  ) +
-  theme_minimal() +
-  labs(
-    title = "Simulazione di Portafogli Casuali con Portafoglio Min Risk Evidenziato",
-    subtitle = "Portafoglio AAPL + JPM + AMZN + XOM",
-    x = "Volatilità annuale (%)",
-    y = "Rendimento atteso annuale (%)"
-  )
-
-# Creiamo una griglia di rendimenti target tra minimo e massimo
-target_returns <- seq(ret_min, ret_tan * 2, length.out = 100)
-
-# Calcoliamo la volatilità per ciascun rendimento target (portafoglio efficiente)
-eff_vols <- sapply(target_returns, function(r_target) {
-  A <- cbind(one_vec, mu_annual)
-  b <- c(1, r_target)
-  w <- solve(Sigma_long) %*% A %*% solve(t(A) %*% solve(Sigma_long) %*% A) %*% b
-  vol <- sqrt(t(w) %*% Sigma_long %*% w)
-  return(vol)
-})
-
-# Data frame frontiera efficiente
-eff_df <- data.frame(Return = target_returns, Volatility = eff_vols)
-
-# Portafoglio completo con bond
-# Aggiungiamo il bond (Rf) come asset aggiuntivo non rischioso
-# Costruiamo combinazioni sulla CML:
-rf_weight <- seq(-1.2, 1, length.out = 100)
-port_returns <- rf_weight * rf_annual + (1 - rf_weight) * ret_tan
-port_vols <- (1 - rf_weight) * c(vol_tan)
-
-cml_df <- data.frame(Return = port_returns, Volatility = port_vols)
-
-# Grafico frontiera efficiente + CML:
-# Creiamo un data frame per i punti speciali
-special_points <- data.frame(
-  Volatility = c(vol_min, vol_tan),
-  Return = c(ret_min, ret_tan),
-  Type = c("Min Risk", "Tangente")
-)
-
+# Grafico della frontiera efficiente + CML + tangente
 ggplot() +
   # Frontiera efficiente
-  geom_line(data = eff_df, aes(x = Volatility, y = Return, color = "Frontiera Efficiente"), linewidth = 1.2) +
-  
-  # CML tratteggiata
-  geom_line(data = cml_df, aes(x = Volatility, y = Return, color = "CML"), linewidth = 1.2, linetype = "dashed") +
-  
-  # Punti speciali
-  geom_point(data = special_points, aes(x = Volatility, y = Return, color = Type), shape = 16, size = 4) +
-  
-  # Impostazioni grafico
+  geom_line(data = frontier_points, aes(x = Volatility, y = Return, color = "Frontiera Efficiente"), size = 1.1) +
+  # Capital Market Line
+  geom_line(data = CML, aes(x = Volatility, y = Return, color = "Capital Market Line (CML)"), linetype = "dashed", size = 1) +
+  # Portafoglio Tangente
+  geom_point(aes(x = vol_tangent, y = ret_tangent, color = "Portafoglio Tangente"), size = 3) +
+  # Tema e legenda
   scale_color_manual(
     name = "Legenda",
     values = c(
       "Frontiera Efficiente" = "blue",
-      "CML" = "orange",
-      "Min Risk" = "red",
-      "Tangente" = "darkorange"
+      "Capital Market Line (CML)" = "darkgreen",
+      "Portafoglio Tangente" = "orange"
     )
   ) +
-  
   theme_minimal() +
   labs(
-    title = "Frontiera efficiente e Capital Market Line (DCC-GARCH)",
-    subtitle = "Portafoglio AAPL + JPM + AMZN + XOM + Bond (Rf_LogReturn_Assumed)",
-    x = "Volatilità annuale (%)",
-    y = "Rendimento atteso annuale (%)"
+    title = "Frontiera Efficiente e Capital Market Line (CML)",
+    subtitle = "Portafoglio AAPL, JPM, AMZN, XOM + Bond",
+    x = "Volatilità annualizzata (%)",
+    y = "Rendimento atteso annualizzato (%)"
   )
 
+
 # Salvataggio risultati
-results_port <- list(
-  mu_annual = mu_annual,
-  Sigma_long = Sigma_long,
-  w_min = w_min,
-  ret_min = ret_min,
-  vol_min = vol_min,
-  w_tan = w_tan,
-  ret_tan = ret_tan,
-  vol_tan = vol_tan,
-  sharpe_tan = sharpe_tan,
-  rf_annual = rf_annual
+results_titoli_bond_dcc_port <- list(
+  # Dati di base
+  risky_assets = risky_assets,       # nomi titoli
+  mu_annual = mu_annual,             # rendimenti attesi annuali
+  H_avg = H_avg,                     # matrice covarianza media
+  Rf_annual = Rf_annual,             # tasso risk-free annuale
+  
+  # Portafoglio minimo rischio
+  w_min = w_mvp,                     # pesi MVP
+  ret_min = ret_mvp,                 # rendimento MVP
+  vol_min = vol_mvp,                 # volatilità MVP
+  
+  # Portafoglio tangente
+  w_tan = w_tangent_risky,           # pesi tangente
+  ret_tan = ret_tangent,             # rendimento tangente
+  vol_tan = vol_tangent,             # volatilità tangente
+  sharpe_tan = sharpe_tangent,       # Sharpe ratio tangente
+  
+  # Frontiera efficiente
+  frontier_points = frontier_points, # punti (rendimento, volatilità)
+  
+  # Capital Market Line
+  CML = CML,                         # coordinate CML
+  
+  notes = "Portafoglio costruito su training set con DCC-GARCH; include frontiera efficiente e CML."
 )
 
-saveRDS(results_port, "../data/portfolio_titoli_bond_dcc_results.rds")
+# Salvataggio in RDS
+saveRDS(results_titoli_bond_dcc_port, "../data/portfolio_titoli_bond_dcc_results.rds")
 ##################################################################################################################################################
 
 ################################################### Costruzione Benchmark ETF + Bond #############################################################
 ##################################################################################################################################################
-# SPY log-return sul training set
-spy_train <- na.omit(training_set$SPY_LogReturn)
-
-# Spec GARCH
-spec_spy <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(4, 1)),
-  mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
-  distribution.model = "sged"
-)
-
-garch_spy_fit <- tryCatch(
-  ugarchfit(spec = spec_spy, data = spy_train, solver = "hybrid"),
-  error = function(e) NULL
-)
-
-# Volatilità giornaliera condizionata e annualizzata
-sigma_spy_daily <- sigma(garch_spy_fit)
-vol_spy_annual <- tail(sigma_spy_daily, n_test) * sqrt(251)
-mean_vol_spy_annual <- mean(vol_spy_annual)
-
-# Rendimento medio giornaliero e annualizzato
-mu_spy_daily <- mean(training_set$SPY_LogReturn, na.rm = TRUE)
+# Rendimenti logaritmici giornalieri di SPY
+spy_returns <- training_set$SPY_LogReturn
+mu_spy_daily <- mean(spy_returns, na.rm = TRUE)
 mu_spy_annual <- mu_spy_daily * 251
 
-# Tasso privo di rischio annualizzato
-rf_annual <- mean(test_set$Rf_LogReturn_Assumed, na.rm = TRUE) * 251
+# Volatilità condizionata (GARCH)
+spec_spy <- ugarchspec(variance.model = list(model="sGARCH", garchOrder=c(4,1)),
+                       mean.model = list(armaOrder=c(0,0), include.mean=FALSE),
+                       distribution.model="sged")
 
-# --- Portafoglio Min Risk (solo bond) ---
-w_min <- 0
-ret_min <- rf_annual
-vol_min <- 0
+fit_spy <- ugarchfit(spec_spy, data = na.omit(training_set$SPY_LogReturn), solver = "hybrid")
 
-# --- Portafoglio tangente ---
-excess_mu <- mu_spy_annual - rf_annual
-w_spy_tan <- excess_mu / (mean_vol_spy_annual^2)
-w_bond_tan <- 1 - w_spy_tan
+# Deviazione standard condizionata giornaliera
+sigma_spy_daily <- sigma(fit_spy)
 
-ret_tan <- w_spy_tan * mu_spy_annual + w_bond_tan * rf_annual
-vol_tan <- w_spy_tan * mean_vol_spy_annual
-sharpe_tan <- (ret_tan - rf_annual) / vol_tan
+# Annualizzazione
+sigma_spy_annual_series <- sigma_spy_daily * sqrt(251)
+sigma_spy <- mean(sigma_spy_annual_series, na.rm = TRUE)
 
-cat("Portafoglio SPY + Bond:\n")
-# Portafoglio SPY + Bond:
-cat("Rendimento atteso annuale:", round(ret_tan, 4), "\n")
-# Rendimento atteso annuale: 4.6039
-cat("Volatilità annuale:", round(vol_tan, 4), "\n")
-# Volatilità annuale: 0.5654
-cat("Sharpe ratio:", round(sharpe_tan, 4), "\n")
-# Sharpe ratio: 0.5654
-cat("Pesi: SPY =", round(w_spy_tan, 3), ", Bond =", round(w_bond_tan, 3), "\n")
-# Pesi: SPY = 0.029 , Bond = 0.971
+# Portafoglio minimo rischio
+# Con un solo asset risky, MVP = 100% bond
+w_mvp_spy <- c(SPY = 0, Bond = 1)
+ret_mvp_spy <- Rf_annual
+vol_mvp_spy <- 0
 
-# --- Simulazione portafogli casuali (1 asset rischioso) ---
-set.seed(123)
-n_portfolios <- 1000
-random_w <- runif(n_portfolios, 0, 1)  # peso in SPY
-port_returns <- random_w * mu_spy_annual + (1 - random_w) * rf_annual
-port_vols <- random_w * mean_vol_spy_annual
+# Portafoglio tangente (SPY + Bond)
+excess_mu_spy <- mu_spy_annual - Rf_annual
+sharpe_tangent_spy <- excess_mu_spy / sigma_spy
 
-random_df <- data.frame(Return = port_returns, Volatility = port_vols, Type = "Random Portfolios")
+# Portafoglio tangente puro (100% SPY, 0% Bond)
+w_tangent_spy <- c(SPY = 1, Bond = 0)
+ret_tangent_spy <- mu_spy_annual
+vol_tangent_spy <- sigma_spy
 
-# Punti speciali: Bond e Tangente
-special_points <- data.frame(
-  Volatility = c(vol_min, vol_tan),
-  Return = c(ret_min, ret_tan),
-  Type = c("Bond", "Tangente")
+cat("\nBenchmark Tangente (SPY + Bond):\n")
+# 
+# Benchmark Tangente (SPY + Bond):
+cat("Peso SPY:", round(w_tangent_spy["SPY"],4), "Peso Bond:", round(w_tangent_spy["Bond"],4), "\n")
+# Peso SPY: 1 Peso Bond: 0
+cat("Rendimento:", round(ret_tangent_spy,4),
+    "Volatilità:", round(vol_tangent_spy,4),
+    "Sharpe:", round(sharpe_tangent_spy,4), "\n")
+# Rendimento: 15.2087 Volatilità: 14.9225 Sharpe: 0.7321
+
+# Costruzione Capital Market Line parametrica: variamo y = quota investita nel portafoglio risky
+y_values <- seq(0, 2, by = 0.05)  # da 0% a 200% rischio (leva)
+portf_returns_spy <- Rf_annual + y_values * (mu_spy_annual - Rf_annual)
+portf_vols_spy <- y_values * sigma_spy
+
+# CML in dataframe
+CML_spy <- data.frame(
+  y = y_values,
+  Volatility = portf_vols_spy,
+  Return = portf_returns_spy
 )
 
-# --- Costruzione CML (combinazioni lineari Bond-Tangente con leverage) ---
-rf_weight <- seq(-34, 1, length.out = 100)
-cml_returns <- rf_weight * rf_annual + (1 - rf_weight) * ret_tan
-cml_vols <- (1 - rf_weight) * vol_tan
-cml_df <- data.frame(Return = cml_returns, Volatility = cml_vols, Type = "CML")
-
-# --- Grafico finale ---
-ggplot() +
-  geom_point(data = random_df, aes(x = Volatility, y = Return, color = Type), alpha = 0.3) +
-  geom_line(data = cml_df, aes(x = Volatility, y = Return, color = Type), linewidth = 1.2, linetype = "dashed") +
-  geom_point(data = special_points, aes(x = Volatility, y = Return, color = Type), size = 4) +
-  scale_color_manual(
-    values = c("Random Portfolios" = "blue",
-               "CML" = "orange",
-               "Bond" = "red",
-               "Tangente" = "darkorange"),
-    name = "Legenda"
+# Grafico Capital Market Line (CML) con portafoglio tangente e minimo rischio
+ggplot(CML_spy, aes(x = Volatility, y = Return)) +
+  geom_line(color = "darkgreen", size = 1.2) +
+  
+  # Portafoglio tangente
+  geom_point(
+    data = data.frame(Volatility = vol_tangent_spy, Return = ret_tangent_spy),
+    aes(x = Volatility, y = Return),
+    color = "orange", size = 3
   ) +
+  annotate("text",
+           x = vol_tangent_spy, y = ret_tangent_spy,
+           label = "TanP", color = "orange", vjust = -1, fontface = "bold") +
+  
+  # Portafoglio minimo rischio
+  geom_point(
+    data = data.frame(Volatility = vol_mvp_spy, Return = ret_mvp_spy),
+    aes(x = Volatility, y = Return),
+    color = "red", size = 3
+  ) +
+  annotate("text",
+           x = vol_mvp_spy, y = ret_mvp_spy,
+           label = "MVP", color = "red", vjust = -1, fontface = "bold") +
+  
   theme_minimal() +
   labs(
-    title = "Frontiera efficiente e CML – Benchmark SPY + Bond",
-    subtitle = "Portafoglio di riferimento con SPY e Bond (Rf_LogReturn_Assumed)",
-    x = "Volatilità annuale (%)",
-    y = "Rendimento atteso annuale (%)"
+    title = "Capital Market Line (CML) - Benchmark SPY + Bond",
+    subtitle = "Combinazioni di SPY e Bond per diversi livelli di rischio",
+    x = "Volatilità annualizzata (%)",
+    y = "Rendimento atteso annualizzato (%)"
   )
 
-# --- Salvataggio risultati benchmark ---
-results_benchmark <- list(
-  mu_spy_annual = mu_spy_annual,
-  vol_spy_annual = mean_vol_spy_annual,
-  rf_annual = rf_annual,
-  w_spy_tan = w_spy_tan,
-  w_bond_tan = w_bond_tan,
-  ret_tan = ret_tan,
-  vol_tan = vol_tan,
-  sharpe_tan = sharpe_tan
+
+# Salvataggio risultati benchmark
+results_benchmark_port <- list(
+  # Dati di base
+  risky_asset = "SPY",             # singolo asset risky
+  mu_annual = mu_spy_annual,       # rendimento atteso annuale
+  sigma_annual = sigma_spy,        # volatilità annualizzata
+  Rf_annual = Rf_annual,           # tasso risk-free annuale
+  
+  # Portafoglio minimo rischio
+  w_min = w_mvp_spy,               # pesi MVP
+  ret_min = ret_mvp_spy,           # rendimento MVP
+  vol_min = vol_mvp_spy,           # volatilità MVP
+  
+  # Portafoglio tangente
+  w_tan = w_tangent_spy,  # pesi tangente
+  ret_tan = ret_tangent_spy,                           # rendimento tangente
+  vol_tan = vol_tangent_spy,                           # volatilità tangente
+  sharpe_tan = sharpe_tangent_spy,                     # Sharpe ratio tangente
+  
+  # Capital Market Line
+  CML = CML_spy,                                          # coordinate CML
+  
+  notes = "Benchmark costruito su SPY + Bond con GARCH; CML parametrica con y variabile (da 0 a 2)."
 )
 
-saveRDS(results_benchmark, "../data/benchmark_spy_bond_results.rds")
+saveRDS(results_benchmark_port, "../data/portfolio_benchmark_spy_bond_results.rds")
 ##################################################################################################################################################
 
 ##################################################### Confronto Performance Portafoglio DCC-GARCH vs Benchmark ###################################
 ##################################################################################################################################################
-# Carica risultati
-results_port <- readRDS("../data/portfolio_titoli_bond_dcc_results.rds")
-results_benchmark <- readRDS("../data/benchmark_spy_bond_results.rds")
+# Caricamento dei risultati salvati
+results_titoli <- readRDS("../data/portfolio_titoli_bond_dcc_results.rds")
+results_benchmark <- readRDS("../data/portfolio_benchmark_spy_bond_results.rds")
 
-comparison_df <- data.frame(
-  Portafoglio = c("DCC-GARCH (AAPL+JPM+AMZN+XOM+Bond)", "Benchmark (SPY+Bond)"),
-  Rendimento = c(results_port$ret_tan, results_benchmark$ret_tan),
-  Volatilità = c(results_port$vol_tan, results_benchmark$vol_tan),
-  Sharpe = c(results_port$sharpe_tan, results_benchmark$sharpe_tan)
+# Imposta la quota di rischio y (stessa per entrambi i portafogli)
+y <- 1
+
+# 1 - Portafoglio Titoli + Bond (usiamo i pesi tangenti stimati)
+returns_risky <- as.matrix(test_set[, results_titoli$risky_assets])
+rf_daily <- test_set$Rf_LogReturn_Assumed
+
+w_tangent_risky <- results_titoli$w_tan
+portf_risky_daily <- returns_risky %*% w_tangent_risky
+
+# Combinazione lungo la CML
+portf_total_daily <- y * portf_risky_daily + (1 - y) * rf_daily
+
+# Benchmark SPY + Bond
+spy_daily <- test_set$SPY_LogReturn
+portf_benchmark_daily <- y * spy_daily + (1 - y) * rf_daily
+
+# Calcolo metriche di performance
+perf_summary <- function(returns, rf_daily) {
+  mu <- mean(returns, na.rm = TRUE) * 251
+  sigma <- sd(returns, na.rm = TRUE) * sqrt(251)
+  sharpe <- (mu - mean(rf_daily, na.rm = TRUE) * 251) / sigma
+  return(c(Rendimento = mu, Volatilità = sigma, Sharpe = sharpe))
+}
+
+perf_titoli <- perf_summary(portf_total_daily, rf_daily)
+perf_benchmark <- perf_summary(portf_benchmark_daily, rf_daily)
+
+performance_df <- rbind(
+  `Portafoglio Titoli + Bond` = perf_titoli,
+  `Benchmark SPY + Bond` = perf_benchmark
 )
 
-print(comparison_df)
-#                          Portafoglio Rendimento Volatilità     Sharpe
-# 1 DCC-GARCH (AAPL+JPM+AMZN+XOM+Bond)  49.910920  2.2948971 19.8818293
-# 2               Benchmark (SPY+Bond)   4.603867  0.5654205  0.5654205
+cat("\n=========================\n")
+# 
+# =========================
+cat("Confronto Performance (Test Set) - y =", y, "\n")
+# Confronto Performance (Test Set) - y = 1
+cat("=========================\n")
+# =========================
+print(round(performance_df, 4))
+#                           Rendimento Volatilità Sharpe
+# Portafoglio Titoli + Bond    46.4009    34.4267 1.2234
+# Benchmark SPY + Bond         46.9941     9.7153 4.3961
 
-# --- Grafico comparativo ---
-ggplot(comparison_df, aes(x = Volatilità, y = Rendimento, color = Portafoglio)) +
-  geom_point(size = 5) +
-  geom_text(aes(label = Portafoglio), hjust = -0.1, vjust = 0.5, size = 3.5, show.legend = FALSE) +
+# Performance cumulata nel tempo
+cumret_titoli <- cumprod(1 + portf_total_daily / 100) * 100
+cumret_benchmark <- cumprod(1 + portf_benchmark_daily / 100) * 100
+
+cum_perf_df <- data.frame(
+  Date = test_set$Date,
+  Titoli_Bond = cumret_titoli,
+  Benchmark = cumret_benchmark
+)
+
+cum_perf_df_long <- cum_perf_df %>%
+  pivot_longer(cols = c(Titoli_Bond, Benchmark),
+               names_to = "Portafoglio", values_to = "Valore")
+
+# Grafico
+ggplot(cum_perf_df_long, aes(x = Date, y = Valore, color = Portafoglio)) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.2, size = 1) +
   theme_minimal() +
-  labs(
-    title = "Confronto tra Portafoglio DCC-GARCH e Benchmark SPY+Bond",
-    x = "Volatilità annuale (%)",
-    y = "Rendimento atteso annuale (%)"
-  ) +
-  scale_color_manual(values = c("DCC-GARCH (AAPL+JPM+AMZN+XOM+Bond)" = "steelblue",
-                                "Benchmark (SPY+Bond)" = "orange"))
-
-
-# Valutazione out-of-sample
-
+  labs(title = "Performance cumulata su Test Set",
+       subtitle = "Portafoglio (AAPL, JPM, AMZN, XOM + Bond) vs. Portafoglio (SPY + Bond)",
+       x = "Data", y = "Valore del portafoglio (base 100)",
+       color = "Portafoglio") +
+  scale_color_manual(values = c("blue", "darkgreen"))
 ##################################################################################################################################################
