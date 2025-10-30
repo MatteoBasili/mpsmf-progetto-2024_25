@@ -37,15 +37,11 @@ Il benchmark è costituito da un ETF che replica l’indice S&P500 combinato con
 7. **Confronto delle performance**  
 Le due strategie sono state confrontate in base a indicatori di performance classici:
 
-- **Sharpe ratio**  
-- **Volatilità annualizzata**  
-- **Rendimento medio out-of-sample**  
+   - **Sharpe ratio**  
+   - **Volatilità annualizzata**  
+   - **Rendimento medio out-of-sample**  
 
-Sono inoltre stati analizzati gli andamenti cumulati dei rendimenti e la stabilità temporale del rischio.
-
-8. **Conclusioni economiche e statistiche**  
-L’analisi finale discute i risultati ottenuti in termini di efficienza del portafoglio, capacità di diversificazione e coerenza con la teoria di portafoglio.
-Vengono inoltre tratte considerazioni sul contributo del modello GARCH/DCC nella gestione del rischio e sulla possibile estensione del lavoro a orizzonti temporali differenti o a portafogli multi-asset globali.
+   Sono inoltre stati analizzati gli andamenti cumulati dei rendimenti.
 
 ---
 
