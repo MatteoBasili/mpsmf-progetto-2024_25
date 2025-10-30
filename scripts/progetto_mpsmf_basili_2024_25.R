@@ -20268,6 +20268,7 @@ ggplot(R_melt, aes(x = Asset1, y = Asset2, fill = Correlation)) +
   geom_tile(color = "white") +
   geom_text(aes(label = round(Correlation, 2)), color = "black", size = 4) +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  scale_y_discrete(limits = rev(unique(R_melt$Asset2))) +
   theme_minimal() +
   theme(
     axis.title.x = element_blank(),   # rimuove titolo asse x
