@@ -20110,7 +20110,7 @@ arch_effects_test(training_set[["Rf_Daily_LogReturn"]], col_name = "Rf_Daily_Log
 # significatività dell'1% per tutti i lag.
 
 # Però, per i bond un modello GARCH non va bene perché abbiamo a che fare con un processo lento e quasi deterministico (l’ARCH test rileva
-# l’eteroschedasticità relativa alla a questa struttura deterministica).
+# l’eteroschedasticità relativa a questa struttura deterministica).
 ##################################################################################################################################################
 
 # Riepilogo modelli GARCH titoli rischiosi:
@@ -20501,7 +20501,7 @@ ggplot(portfolios_df, aes(x = Volatility, y = Return)) +
   annotate("point", x = vol_mvp, y = ret_mvp, color = "red", size = 2) +
   annotate("text", x = vol_mvp, y = ret_mvp, label = "MVP", color = "red", vjust = -1) +
   theme_minimal() +
-  labs(title = "Simulazione di Portafogli Casuali e Portafoglio di Minimo Rischio (MVP)",
+  labs(title = "Simulazione di 10000 Portafogli Casuali e Portafoglio di Minimo Rischio (MVP)",
        subtitle = "Portafoglio AAPL, JPM, AMZN, XOM + Bond",
        x = "Volatilità annualizzata (%)", y = "Rendimento atteso annualizzato (%)")
 
@@ -20634,6 +20634,9 @@ sigma_spy <- mean(sigma_spy_annual_series, na.rm = TRUE)
 w_mvp_spy <- c(SPY = 0, Bond = 1)
 ret_mvp_spy <- Rf_annual
 vol_mvp_spy <- 0
+
+# Rendimento atteso annualizzato: 4.284167
+# Volatilità annualizzata:               0
 
 # Portafoglio tangente (SPY + Bond)
 excess_mu_spy <- mu_spy_annual - Rf_annual
@@ -20796,7 +20799,157 @@ cum_perf_df_long <- cum_perf_df %>%
 ggplot(cum_perf_df_long, aes(x = Date, y = Valore, color = Portafoglio)) +
   geom_smooth(se = FALSE, method = "loess", span = 0.2, size = 1) +
   theme_minimal() +
-  labs(title = "Performance cumulata su Test Set",
+  labs(title = paste("Performance cumulata su Test Set (rischio", y * 100, "%)"),
+       subtitle = "Portafoglio (AAPL, JPM, AMZN, XOM + Bond) vs. Portafoglio (SPY + Bond)",
+       x = "Data", y = "Valore del portafoglio (base 100)",
+       color = "Portafoglio") +
+  scale_color_manual(values = c("blue", "darkgreen"))
+
+# --------------------------------------------------------------------------------------------
+
+# Caricamento dei risultati salvati
+results_titoli <- readRDS("../data/portfolio_titoli_bond_dcc_results.rds")
+results_benchmark <- readRDS("../data/portfolio_benchmark_spy_bond_results.rds")
+
+# Imposta la quota di rischio y (stessa per entrambi i portafogli)
+y <- 0.5
+
+# 1 - Portafoglio Titoli + Bond (usiamo i pesi tangenti stimati)
+returns_risky <- as.matrix(test_set[, results_titoli$risky_assets])
+rf_daily <- test_set$Rf_LogReturn_Assumed
+
+w_tangent_risky <- results_titoli$w_tan
+portf_risky_daily <- returns_risky %*% w_tangent_risky
+
+# Combinazione lungo la CML
+portf_total_daily <- y * portf_risky_daily + (1 - y) * rf_daily
+
+# Benchmark SPY + Bond
+spy_daily <- test_set$SPY_LogReturn
+portf_benchmark_daily <- y * spy_daily + (1 - y) * rf_daily
+
+# Calcolo metriche di performance
+perf_summary <- function(returns, rf_daily) {
+  mu <- mean(returns, na.rm = TRUE) * 251
+  sigma <- sd(returns, na.rm = TRUE) * sqrt(251)
+  sharpe <- (mu - mean(rf_daily, na.rm = TRUE) * 251) / sigma
+  return(c(Rendimento = mu, Volatilità = sigma, Sharpe = sharpe))
+}
+
+perf_titoli <- perf_summary(portf_total_daily, rf_daily)
+perf_benchmark <- perf_summary(portf_benchmark_daily, rf_daily)
+
+performance_df <- rbind(
+  `Portafoglio Titoli + Bond` = perf_titoli,
+  `Benchmark SPY + Bond` = perf_benchmark
+)
+
+cat("\n=========================\n")
+# 
+# =========================
+cat("Confronto Performance (Test Set) - y =", y, "\n")
+# Confronto Performance (Test Set) - y = 0.5
+cat("=========================\n")
+# =========================
+print(round(performance_df, 4))
+#                           Rendimento Volatilità Sharpe
+# Portafoglio Titoli + Bond    25.3425    17.2133 1.2234
+# Benchmark SPY + Bond         25.6392     4.8577 4.3961
+
+# Performance cumulata nel tempo
+cumret_titoli <- cumprod(1 + portf_total_daily / 100) * 100
+cumret_benchmark <- cumprod(1 + portf_benchmark_daily / 100) * 100
+
+cum_perf_df <- data.frame(
+  Date = test_set$Date,
+  Titoli_Bond = cumret_titoli,
+  Benchmark = cumret_benchmark
+)
+
+cum_perf_df_long <- cum_perf_df %>%
+  pivot_longer(cols = c(Titoli_Bond, Benchmark),
+               names_to = "Portafoglio", values_to = "Valore")
+
+# Grafico
+ggplot(cum_perf_df_long, aes(x = Date, y = Valore, color = Portafoglio)) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.2, size = 1) +
+  theme_minimal() +
+  labs(title = paste("Performance cumulata su Test Set (rischio", y * 100, "%)"),
+       subtitle = "Portafoglio (AAPL, JPM, AMZN, XOM + Bond) vs. Portafoglio (SPY + Bond)",
+       x = "Data", y = "Valore del portafoglio (base 100)",
+       color = "Portafoglio") +
+  scale_color_manual(values = c("blue", "darkgreen"))
+
+# --------------------------------------------------------------------------------------------
+
+# Caricamento dei risultati salvati
+results_titoli <- readRDS("../data/portfolio_titoli_bond_dcc_results.rds")
+results_benchmark <- readRDS("../data/portfolio_benchmark_spy_bond_results.rds")
+
+# Imposta la quota di rischio y (stessa per entrambi i portafogli)
+y <- 0.25
+
+# 1 - Portafoglio Titoli + Bond (usiamo i pesi tangenti stimati)
+returns_risky <- as.matrix(test_set[, results_titoli$risky_assets])
+rf_daily <- test_set$Rf_LogReturn_Assumed
+
+w_tangent_risky <- results_titoli$w_tan
+portf_risky_daily <- returns_risky %*% w_tangent_risky
+
+# Combinazione lungo la CML
+portf_total_daily <- y * portf_risky_daily + (1 - y) * rf_daily
+
+# Benchmark SPY + Bond
+spy_daily <- test_set$SPY_LogReturn
+portf_benchmark_daily <- y * spy_daily + (1 - y) * rf_daily
+
+# Calcolo metriche di performance
+perf_summary <- function(returns, rf_daily) {
+  mu <- mean(returns, na.rm = TRUE) * 251
+  sigma <- sd(returns, na.rm = TRUE) * sqrt(251)
+  sharpe <- (mu - mean(rf_daily, na.rm = TRUE) * 251) / sigma
+  return(c(Rendimento = mu, Volatilità = sigma, Sharpe = sharpe))
+}
+
+perf_titoli <- perf_summary(portf_total_daily, rf_daily)
+perf_benchmark <- perf_summary(portf_benchmark_daily, rf_daily)
+
+performance_df <- rbind(
+  `Portafoglio Titoli + Bond` = perf_titoli,
+  `Benchmark SPY + Bond` = perf_benchmark
+)
+
+cat("\n=========================\n")
+# 
+# =========================
+cat("Confronto Performance (Test Set) - y =", y, "\n")
+# Confronto Performance (Test Set) - y = 0.25
+cat("=========================\n")
+# =========================
+print(round(performance_df, 4))
+#                           Rendimento Volatilità Sharpe
+# Portafoglio Titoli + Bond    14.8133     8.6067 1.2234
+# Benchmark SPY + Bond         14.9617     2.4288 4.3961
+
+# Performance cumulata nel tempo
+cumret_titoli <- cumprod(1 + portf_total_daily / 100) * 100
+cumret_benchmark <- cumprod(1 + portf_benchmark_daily / 100) * 100
+
+cum_perf_df <- data.frame(
+  Date = test_set$Date,
+  Titoli_Bond = cumret_titoli,
+  Benchmark = cumret_benchmark
+)
+
+cum_perf_df_long <- cum_perf_df %>%
+  pivot_longer(cols = c(Titoli_Bond, Benchmark),
+               names_to = "Portafoglio", values_to = "Valore")
+
+# Grafico
+ggplot(cum_perf_df_long, aes(x = Date, y = Valore, color = Portafoglio)) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.2, size = 1) +
+  theme_minimal() +
+  labs(title = paste("Performance cumulata su Test Set (rischio", y * 100, "%)"),
        subtitle = "Portafoglio (AAPL, JPM, AMZN, XOM + Bond) vs. Portafoglio (SPY + Bond)",
        x = "Data", y = "Valore del portafoglio (base 100)",
        color = "Portafoglio") +
