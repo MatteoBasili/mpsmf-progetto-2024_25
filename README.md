@@ -48,4 +48,5 @@ Le due strategie sono state confrontate in base a indicatori di performance clas
 ## 📁 Struttura del repository
 
 - `data/` → Dataset storici, serie dei rendimenti utilizzati e output  
+- `presentazione/` → Presentazione del progetto  
 - `scripts/` → Codice per scaricare i dati di interesse e analizzarli  
